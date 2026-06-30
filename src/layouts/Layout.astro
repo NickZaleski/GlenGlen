@@ -190,6 +190,22 @@ const { title = "GlenGlen" } = Astro.props;
           transform: scaleY(0.7);
         }
       }
+
+      /* Progress bar: rail thickens on hover / while scrubbing */
+      .progress-bar:hover .progress-rail,
+      .progress-bar.is-scrubbing .progress-rail {
+        height: 6px;
+      }
+      /* Keep the thumb visible while actively scrubbing */
+      .progress-bar.is-scrubbing .progress-thumb {
+        transform: translateX(50%) translateY(-50%) scale(1);
+      }
+      .progress-bar:focus-visible {
+        outline: none;
+      }
+      .progress-bar:focus-visible .progress-thumb {
+        transform: translateX(50%) translateY(-50%) scale(1);
+      }
     </style>
   </head>
   <body

@@ -112,18 +112,42 @@ const tracks = [
       <div class="bg-surface-container-high/40 p-gutter border-t border-tertiary/10 flex flex-col gap-4">
         <!-- Progress Bar -->
         <div class="w-full flex items-center gap-3">
-          <span class="font-label-sm text-label-sm text-on-surface-variant" id="current-time">00:00</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant tabular-nums w-10 text-right" id="current-time">
+            00:00
+          </span>
           <div
-            class="flex-grow h-1 bg-surface-variant rounded-full overflow-hidden relative cursor-pointer"
+            class="progress-bar group/progress flex-grow relative flex items-center h-4 cursor-pointer select-none touch-none"
             id="progress-track"
+            role="slider"
+            tabindex="0"
+            aria-label="Seek"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
           >
-            <div
-              class="absolute top-0 left-0 h-full w-0 bg-secondary rounded-full shadow-[0_0_10px_rgba(149,204,255,0.8)]"
-              id="progress-fill"
-            >
+            <!-- Rail -->
+            <div class="progress-rail relative w-full h-1 bg-surface-variant rounded-full overflow-visible transition-[height] duration-150 ease-out">
+              <!-- Hover preview (where you'd seek to) -->
+              <div
+                class="absolute top-0 left-0 h-full w-0 bg-on-surface/10 rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity pointer-events-none"
+                id="progress-hover"
+              >
+              </div>
+              <!-- Played portion -->
+              <div
+                class="absolute top-0 left-0 h-full w-0 bg-secondary rounded-full shadow-[0_0_10px_rgba(149,204,255,0.8)]"
+                id="progress-fill"
+              >
+                <!-- Draggable thumb -->
+                <span
+                  class="progress-thumb absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-secondary shadow-[0_0_8px_rgba(149,204,255,0.9)] scale-0 group-hover/progress:scale-100 transition-transform duration-150 ease-out"
+                  id="progress-thumb"
+                >
+                </span>
+              </div>
             </div>
           </div>
-          <span class="font-label-sm text-label-sm text-on-surface-variant" id="total-time">00:00</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant tabular-nums w-10" id="total-time">00:00</span>
         </div>
 
         <!-- Controls -->
@@ -167,12 +191,9 @@ const tracks = [
     </div>
   </main>
 
-  <!-- Audio element driven by the player script -->
-  <audio id="audio" preload="metadata"></audio>
 </Layout>
 
 <script>
-  const audio = document.getElementById("audio") as HTMLAudioElement;
   const items = Array.from(document.querySelectorAll<HTMLLIElement>(".track-item"));
   const playBtn = document.getElementById("play-btn");
   const playIcon = document.getElementById("play-icon");
@@ -185,6 +206,26 @@ const tracks = [
   const nowPlayingTitle = document.getElementById("now-playing-title");
   const volumeTrack = document.getElementById("volume-track");
   const volumeFill = document.getElementById("volume-fill");
+
+  // ===== Crossfade configuration =====
+  // Length of the overlap between a track ending and the next starting.
+  // No silent gap occurs: the next track begins while the current is still
+  // fading out. Tweak this value (in seconds) to taste.
+  const CROSSFADE_SECONDS = 0.6;
+
+  // Two "decks" let us overlap two tracks for a true gapless crossfade.
+  // A single <audio> element can't overlap with itself.
+  const decks = [new Audio(), new Audio()];
+  decks.forEach((d) => {
+    d.preload = "auto";
+  });
+  let activeDeck = 0; // index into `decks` that is the foreground track
+  let masterVolume = decks[0].volume; // user-set volume (0..1), independent of fade
+  let crossfading = false;
+  let scrubbing = false; // true while the user is dragging the progress bar
+
+  const audio = () => decks[activeDeck];
+  const other = () => decks[activeDeck === 0 ? 1 : 0];
 
   let current = 0;
 
@@ -221,32 +262,110 @@ const tracks = [
     });
   }
 
+  function updateNowPlaying(index: number) {
+    const item = items[index];
+    if (!item) return;
+    if (nowPlayingTitle) nowPlayingTitle.textContent = item.dataset.title ?? "";
+    highlight(index);
+  }
+
+  // Load a track onto the active deck and (optionally) play it.
+  // Used for explicit selection / prev / next, NOT for the auto crossfade.
   function load(index: number, autoplay = false) {
     const item = items[index];
     if (!item) return;
+    cancelCrossfade();
     current = index;
-    audio.src = item.dataset.src ?? "";
-    if (nowPlayingTitle) nowPlayingTitle.textContent = item.dataset.title ?? "";
-    highlight(index);
+    const deck = audio();
+    deck.volume = masterVolume;
+    deck.src = item.dataset.src ?? "";
+    updateNowPlaying(index);
     setPlayingState(false);
-    if (autoplay) audio.play();
+    if (autoplay) deck.play().catch(() => {});
   }
 
   function togglePlay() {
-    if (!audio.src) load(current);
-    if (audio.paused) audio.play();
-    else audio.pause();
+    const deck = audio();
+    if (!deck.src) {
+      load(current, true);
+      return;
+    }
+    if (deck.paused) deck.play().catch(() => {});
+    else deck.pause();
+  }
+
+  // ===== Crossfade engine =====
+  let crossfadeRAF = 0;
+
+  function cancelCrossfade() {
+    if (crossfadeRAF) cancelAnimationFrame(crossfadeRAF);
+    crossfadeRAF = 0;
+    crossfading = false;
+    // Make sure the background deck is stopped and silenced.
+    const bg = other();
+    bg.pause();
+    bg.currentTime = 0;
+    bg.volume = masterVolume;
+  }
+
+  // Begin overlapping the next track on the other deck and ramp volumes.
+  function startCrossfade() {
+    if (crossfading) return;
+    const nextIndex = (current + 1) % items.length;
+    const item = items[nextIndex];
+    if (!item) return;
+
+    crossfading = true;
+    const fromDeck = audio();
+    const toDeck = other();
+
+    toDeck.src = item.dataset.src ?? "";
+    toDeck.currentTime = 0;
+    toDeck.volume = 0;
+
+    // Once the incoming track can play, the foreground switches to it so the
+    // UI (progress, title, indicator) tracks the track you actually hear.
+    current = nextIndex;
+    activeDeck = activeDeck === 0 ? 1 : 0; // toDeck becomes active
+    updateNowPlaying(current);
+    setPlayingState(true);
+
+    toDeck.play().catch(() => {});
+
+    const start = performance.now();
+    const durationMs = CROSSFADE_SECONDS * 1000;
+
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      // Equal-power crossfade keeps perceived loudness constant (no dip).
+      const inGain = Math.sin((t * Math.PI) / 2);
+      const outGain = Math.cos((t * Math.PI) / 2);
+      toDeck.volume = masterVolume * inGain;
+      fromDeck.volume = masterVolume * outGain;
+
+      if (t < 1) {
+        crossfadeRAF = requestAnimationFrame(step);
+      } else {
+        fromDeck.pause();
+        fromDeck.currentTime = 0;
+        fromDeck.volume = masterVolume;
+        toDeck.volume = masterVolume;
+        crossfading = false;
+        crossfadeRAF = 0;
+      }
+    };
+    crossfadeRAF = requestAnimationFrame(step);
   }
 
   playBtn?.addEventListener("click", togglePlay);
-  prevBtn?.addEventListener("click", () => load((current - 1 + items.length) % items.length, !audio.paused));
-  nextBtn?.addEventListener("click", () => load((current + 1) % items.length, !audio.paused));
+  prevBtn?.addEventListener("click", () => load((current - 1 + items.length) % items.length, !audio().paused));
+  nextBtn?.addEventListener("click", () => load((current + 1) % items.length, !audio().paused));
 
   items.forEach((item, i) => {
     item.addEventListener("click", () => {
       // Clicking the track that's already loaded toggles play/pause
       // instead of restarting it; clicking a different track loads + plays it.
-      if (i === current && audio.src) {
+      if (i === current && audio().src && !crossfading) {
         togglePlay();
       } else {
         load(i, true);
@@ -254,37 +373,133 @@ const tracks = [
     });
   });
 
-  audio.addEventListener("play", () => {
-    if (playIcon) playIcon.textContent = "pause";
-    setPlayingState(true);
+  // Wire shared playback events for BOTH decks; handlers act only when the
+  // event comes from whichever deck is currently active.
+  decks.forEach((deck) => {
+    deck.addEventListener("play", () => {
+      if (deck !== audio()) return;
+      if (playIcon) playIcon.textContent = "pause";
+      setPlayingState(true);
+    });
+    deck.addEventListener("pause", () => {
+      if (deck !== audio() || crossfading) return;
+      if (playIcon) playIcon.textContent = "play_arrow";
+      setPlayingState(false);
+    });
+    deck.addEventListener("loadedmetadata", () => {
+      if (deck !== audio()) return;
+      if (totalTimeEl) totalTimeEl.textContent = fmt(deck.duration);
+    });
+    deck.addEventListener("timeupdate", () => {
+      if (deck !== audio()) return;
+      if (currentTimeEl) currentTimeEl.textContent = fmt(deck.currentTime);
+      // Don't fight the user while they're dragging the scrubber.
+      if (progressFill && deck.duration && !scrubbing) {
+        progressFill.style.width = `${(deck.currentTime / deck.duration) * 100}%`;
+        progressTrack?.setAttribute("aria-valuenow", String(Math.round((deck.currentTime / deck.duration) * 100)));
+      }
+      // Kick off the crossfade once we're within the crossfade window of the end.
+      if (
+        deck.duration &&
+        !crossfading &&
+        deck.duration - deck.currentTime <= CROSSFADE_SECONDS
+      ) {
+        startCrossfade();
+      }
+    });
+    // Safety net: if a track ends without a crossfade having started
+    // (e.g. track shorter than the crossfade window), advance immediately.
+    deck.addEventListener("ended", () => {
+      if (deck !== audio() || crossfading) return;
+      load((current + 1) % items.length, true);
+    });
   });
-  audio.addEventListener("pause", () => {
-    if (playIcon) playIcon.textContent = "play_arrow";
-    setPlayingState(false);
-  });
-  audio.addEventListener("ended", () => load((current + 1) % items.length, true));
 
-  audio.addEventListener("loadedmetadata", () => {
-    if (totalTimeEl) totalTimeEl.textContent = fmt(audio.duration);
-  });
-  audio.addEventListener("timeupdate", () => {
-    if (currentTimeEl) currentTimeEl.textContent = fmt(audio.currentTime);
-    if (progressFill && audio.duration) {
-      progressFill.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
-    }
-  });
+  // ===== Progress bar: scrub (drag), hover preview, keyboard =====
+  const progressHover = document.getElementById("progress-hover");
 
-  progressTrack?.addEventListener("click", (e) => {
-    if (!audio.duration) return;
+  const ratioFromEvent = (clientX: number) => {
+    if (!progressTrack) return 0;
     const rect = progressTrack.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    audio.currentTime = ratio * audio.duration;
+    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+  };
+
+  const renderProgress = (ratio: number) => {
+    if (progressFill) progressFill.style.width = `${ratio * 100}%`;
+    progressTrack?.setAttribute("aria-valuenow", String(Math.round(ratio * 100)));
+  };
+
+  const seekToRatio = (ratio: number) => {
+    const deck = audio();
+    if (!deck.duration) return;
+    deck.currentTime = ratio * deck.duration;
+    renderProgress(ratio);
+    if (currentTimeEl) currentTimeEl.textContent = fmt(deck.currentTime);
+  };
+
+  // Hover preview: show where a click would land.
+  progressTrack?.addEventListener("pointermove", (e) => {
+    if (!progressHover) return;
+    const ratio = ratioFromEvent(e.clientX);
+    progressHover.style.width = `${ratio * 100}%`;
+  });
+
+  // Drag to scrub.
+  progressTrack?.addEventListener("pointerdown", (e) => {
+    if (!audio().duration) return;
+    scrubbing = true;
+    progressTrack.classList.add("is-scrubbing");
+    progressTrack.setPointerCapture(e.pointerId);
+    seekToRatio(ratioFromEvent(e.clientX));
+  });
+  progressTrack?.addEventListener("pointermove", (e) => {
+    if (!scrubbing) return;
+    seekToRatio(ratioFromEvent(e.clientX));
+  });
+  const endScrub = (e: PointerEvent) => {
+    if (!scrubbing) return;
+    scrubbing = false;
+    progressTrack?.classList.remove("is-scrubbing");
+    try {
+      progressTrack?.releasePointerCapture(e.pointerId);
+    } catch {}
+  };
+  progressTrack?.addEventListener("pointerup", endScrub);
+  progressTrack?.addEventListener("pointercancel", endScrub);
+
+  // Keyboard seeking (arrow keys = ±5s, Home/End = start/end).
+  progressTrack?.addEventListener("keydown", (e) => {
+    const deck = audio();
+    if (!deck.duration) return;
+    let handled = true;
+    switch (e.key) {
+      case "ArrowRight":
+        deck.currentTime = Math.min(deck.duration, deck.currentTime + 5);
+        break;
+      case "ArrowLeft":
+        deck.currentTime = Math.max(0, deck.currentTime - 5);
+        break;
+      case "Home":
+        deck.currentTime = 0;
+        break;
+      case "End":
+        deck.currentTime = deck.duration;
+        break;
+      default:
+        handled = false;
+    }
+    if (handled) {
+      e.preventDefault();
+      renderProgress(deck.currentTime / deck.duration);
+    }
   });
 
   volumeTrack?.addEventListener("click", (e) => {
     const rect = volumeTrack.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    audio.volume = ratio;
+    masterVolume = ratio;
+    // Apply immediately unless a crossfade is mid-ramp (it owns volume then).
+    if (!crossfading) audio().volume = masterVolume;
     if (volumeFill) volumeFill.style.width = `${ratio * 100}%`;
   });
 
