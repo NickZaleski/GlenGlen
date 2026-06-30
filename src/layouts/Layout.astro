@@ -65,7 +65,7 @@ const schemaList = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;800&family=Manrope:wght@400&family=Space+Grotesk:wght@500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;800&family=Inter:wght@400;500;600&family=Manrope:wght@400&family=Space+Grotesk:wght@500&display=swap"
       rel="stylesheet"
     />
     <link
@@ -140,6 +140,7 @@ const schemaList = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
               "safe-area": "32px",
             },
             fontFamily: {
+              "track-title": ["Inter", "system-ui", "sans-serif"],
               "body-md": ["Manrope"],
               "headline-lg": ["Bricolage Grotesque"],
               "headline-lg-mobile": ["Bricolage Grotesque"],
@@ -280,6 +281,18 @@ const schemaList = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
           animation: none;
           transform: scaleY(0.7);
         }
+      }
+
+      /* Now-playing artwork tile: swap the static icon for the animated
+         equalizer while a track is playing (mirrors the tracklist rows). */
+      .now-playing-eq {
+        display: none;
+      }
+      body.is-playing .now-playing-icon {
+        display: none;
+      }
+      body.is-playing .now-playing-eq {
+        display: flex;
       }
 
       /* Progress bar: rail thickens on hover / while scrubbing */

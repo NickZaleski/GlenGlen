@@ -133,7 +133,7 @@ const websiteSchema = {
                   <div class="min-w-0">
                     <h3
                       class:list={[
-                        "track-title font-body-md text-[16px] sm:text-[17px] md:text-[19px] leading-snug tracking-[-0.01em] truncate transition-colors group-hover:text-on-surface",
+                        "track-title font-track-title text-[16px] sm:text-[17px] md:text-[19px] leading-snug tracking-normal truncate transition-colors group-hover:text-on-surface",
                         i === 0 ? "text-on-surface font-semibold" : "text-on-surface/80 font-medium",
                       ]}
                     >
@@ -197,23 +197,34 @@ const websiteSchema = {
           <span class="font-label-sm text-label-sm text-on-surface-variant tabular-nums w-10" id="total-time">00:00</span>
         </div>
 
-        <!-- Controls -->
-        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-4">
-          <!-- Now playing (artwork + title). Title shows on every viewport. -->
-          <div class="flex items-center gap-3 md:gap-4 min-w-0">
-            <div class="w-12 h-12 md:w-14 md:h-14 rounded-md bg-surface-variant/50 flex items-center justify-center overflow-hidden relative shrink-0">
+        <!-- Controls.
+             Mobile: now-playing row on top, transport centered below.
+             sm+:    three balanced columns (now-playing | transport | volume)
+                     so the transport sits optically centered. -->
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
+          <!-- Now playing (artwork + title). Shows on every viewport. -->
+          <div class="flex items-center gap-3 md:gap-4 min-w-0 sm:flex-1 sm:basis-0">
+            <div class="now-playing-art w-12 h-12 md:w-14 md:h-14 rounded-md bg-surface-variant/50 flex items-center justify-center overflow-hidden relative shrink-0">
               <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
-              <span class="material-symbols-outlined text-primary/80 absolute md:text-[28px]">graphic_eq</span>
+              <!-- Static icon when paused -->
+              <span class="now-playing-icon material-symbols-outlined text-primary/80 absolute md:text-[28px]">graphic_eq</span>
+              <!-- Animated equalizer while playing -->
+              <span class="now-playing-eq track-eq gap-[3px] items-end h-4 md:h-5 text-primary" aria-hidden="true">
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+              </span>
             </div>
             <div class="min-w-0">
-              <h4 class="font-body-md text-[15px] md:text-[17px] text-on-surface font-semibold leading-tight truncate" id="now-playing-title">
+              <h4 class="font-track-title text-[15px] md:text-[17px] text-on-surface font-semibold leading-tight truncate" id="now-playing-title">
                 {tracks[0].title}
               </h4>
               <p class="font-label-sm text-on-surface-variant/70 text-[11px] md:text-xs">GlenGlen</p>
             </div>
           </div>
           <!-- Transport -->
-          <div class="flex items-center gap-4 sm:gap-6 md:gap-7 justify-self-center">
+          <div class="flex items-center gap-8 sm:gap-6 md:gap-7 shrink-0 justify-center">
             <button
               class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-secondary active:scale-95 transition-all"
               id="prev-btn"
@@ -238,11 +249,15 @@ const websiteSchema = {
               <span class="material-symbols-outlined md:text-[28px]">skip_next</span>
             </button>
           </div>
-          <!-- Volume (pointer devices only; touch users use OS volume). -->
-          <div class="hidden sm:flex items-center gap-2 justify-self-end">
-            <span class="material-symbols-outlined text-on-surface-variant text-sm">volume_up</span>
-            <div class="w-16 md:w-24 h-1.5 bg-surface-variant rounded-full overflow-hidden cursor-pointer" id="volume-track">
-              <div class="h-full w-2/3 bg-primary/70 rounded-full" id="volume-fill"></div>
+          <!-- Volume (pointer devices only; touch users use OS volume).
+               Balances the now-playing column (flex-1 basis-0) so the transport
+               stays optically centered, while the slider hugs the right edge. -->
+          <div class="hidden sm:flex items-center gap-2.5 sm:flex-1 sm:basis-0 justify-end">
+            <span class="material-symbols-outlined text-on-surface-variant text-[20px] leading-none">volume_up</span>
+            <div class="group/vol w-20 md:w-28 h-4 flex items-center cursor-pointer" id="volume-track">
+              <div class="relative w-full h-1.5 bg-surface-variant rounded-full overflow-hidden">
+                <div class="h-full w-2/3 bg-primary/70 group-hover/vol:bg-primary rounded-full transition-colors" id="volume-fill"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -319,6 +334,8 @@ const websiteSchema = {
     items.forEach((item, i) => {
       item.classList.toggle("is-playing", playing && i === current);
     });
+    // Drives the animated equalizer in the now-playing artwork tile.
+    document.body.classList.toggle("is-playing", playing);
   }
 
   function updateNowPlaying(index: number) {
