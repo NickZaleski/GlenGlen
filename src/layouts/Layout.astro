@@ -1,0 +1,200 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = "GlenGlen" } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>{title}</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" is:inline></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;800&family=Manrope:wght@400&family=Space+Grotesk:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config" is:inline>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#00391d",
+              "outline-variant": "#3c4a3f",
+              "on-primary-fixed-variant": "#00522d",
+              outline: "#859587",
+              "inverse-surface": "#dae5e0",
+              "on-tertiary": "#24323a",
+              "on-secondary-fixed": "#001d32",
+              "on-secondary-fixed-variant": "#004a75",
+              background: "#0b1513",
+              "inverse-on-surface": "#28332f",
+              "secondary-fixed": "#cde5ff",
+              "on-background": "#dae5e0",
+              "surface-container-low": "#141e1b",
+              "surface-bright": "#313b38",
+              "surface-container": "#18221f",
+              "on-secondary": "#003352",
+              "on-tertiary-fixed-variant": "#3b4951",
+              "on-error": "#690005",
+              secondary: "#95ccff",
+              "error-container": "#93000a",
+              "on-primary-fixed": "#00210f",
+              error: "#ffb4ab",
+              primary: "#56fba0",
+              "inverse-primary": "#006d3d",
+              "on-primary-container": "#005d33",
+              "on-error-container": "#ffdad6",
+              "primary-fixed-dim": "#33e289",
+              "secondary-fixed-dim": "#95ccff",
+              "surface-dim": "#0b1513",
+              "primary-container": "#2dde86",
+              "on-surface": "#dae5e0",
+              "secondary-container": "#2297e2",
+              "surface-tint": "#33e289",
+              "primary-fixed": "#5affa3",
+              "tertiary-fixed-dim": "#bac9d3",
+              "surface-variant": "#2d3734",
+              "on-secondary-container": "#002c48",
+              surface: "#0b1513",
+              "tertiary-container": "#b6c5d0",
+              "on-surface-variant": "#bbcbbc",
+              "surface-container-highest": "#2d3734",
+              "surface-container-high": "#222c29",
+              "on-tertiary-fixed": "#0f1d25",
+              "surface-container-lowest": "#07100d",
+              tertiary: "#d2e1ec",
+              "tertiary-fixed": "#d6e5ef",
+              "on-tertiary-container": "#44525b",
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+            spacing: {
+              "margin-desktop": "64px",
+              "margin-mobile": "16px",
+              unit: "8px",
+              gutter: "24px",
+              "safe-area": "32px",
+            },
+            fontFamily: {
+              "body-md": ["Manrope"],
+              "headline-lg": ["Bricolage Grotesque"],
+              "headline-lg-mobile": ["Bricolage Grotesque"],
+              "body-lg": ["Manrope"],
+              "label-sm": ["Space Grotesk"],
+              "display-lg": ["Bricolage Grotesque"],
+            },
+            fontSize: {
+              "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
+              "headline-lg": ["48px", { lineHeight: "1.2", fontWeight: "700" }],
+              "headline-lg-mobile": ["32px", { lineHeight: "1.2", fontWeight: "700" }],
+              "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+              "label-sm": ["12px", { lineHeight: "1", letterSpacing: "0.1em", fontWeight: "500" }],
+              "display-lg": ["72px", { lineHeight: "1.1", letterSpacing: "-0.04em", fontWeight: "800" }],
+            },
+          },
+        },
+      };
+    </script>
+    <style is:global>
+      .glass-panel {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(210, 225, 236, 0.2); /* tertiary/20 */
+        box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
+      }
+      .neon-glow {
+        box-shadow: 0 0 30px rgba(86, 251, 160, 0.4); /* primary glow */
+      }
+
+      /* Custom Scrollbar for tracklist */
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      /* Animated "now playing" equalizer bars */
+      .track-eq {
+        display: none;
+      }
+      .track-eq .eq-bar {
+        width: 3px;
+        height: 100%;
+        background-color: currentColor;
+        border-radius: 9999px;
+        transform-origin: bottom;
+        animation: eq-bounce 0.9s ease-in-out infinite;
+      }
+      .track-eq .eq-bar:nth-child(1) {
+        animation-delay: -0.6s;
+      }
+      .track-eq .eq-bar:nth-child(2) {
+        animation-delay: -0.3s;
+      }
+      .track-eq .eq-bar:nth-child(3) {
+        animation-delay: -0.45s;
+      }
+      @keyframes eq-bounce {
+        0%,
+        100% {
+          transform: scaleY(0.3);
+        }
+        50% {
+          transform: scaleY(1);
+        }
+      }
+
+      /* State toggles driven by JS adding `is-playing` on the active row */
+      /* Default (not playing): show play arrow only */
+      .track-item .track-icon-play {
+        display: flex;
+      }
+      .track-item .track-icon-pause,
+      .track-item .track-eq {
+        display: none;
+      }
+      /* Playing: hide play arrow, show equalizer; on hover swap eq -> pause */
+      .track-item.is-playing .track-icon-play {
+        display: none;
+      }
+      .track-item.is-playing .track-eq {
+        display: flex;
+      }
+      .track-item.is-playing:hover .track-eq {
+        display: none;
+      }
+      .track-item.is-playing:hover .track-icon-pause {
+        display: flex;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .track-eq .eq-bar {
+          animation: none;
+          transform: scaleY(0.7);
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="bg-background text-on-surface h-screen w-screen overflow-hidden flex flex-col font-body-md relative"
+  >
+    <slot />
+  </body>
+</html>

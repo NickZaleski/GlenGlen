@@ -1,0 +1,293 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+// =====================================================================
+//  TRACKS  ->  ADD YOUR 5 AUDIO FILES HERE
+// ---------------------------------------------------------------------
+//  1. Drop the audio files into:  public/audio/
+//  2. Reference them below in `src` as "/audio/<filename>".
+//     (Anything in public/ is served from the site root, so a file at
+//      public/audio/little-peek.mp3 is reachable at "/audio/little-peek.mp3")
+// =====================================================================
+const tracks = [
+  { title: "Little Peek", duration: "02:52", src: "/audio/little-peek.mp3" },
+  { title: "At the Gates of Rimal Kubra", duration: "03:05", src: "/audio/at-the-gates-of-rimal-kubra.mp3" },
+  { title: "The Ascension of Rimal Kubra", duration: "01:26", src: "/audio/the-ascension-of-rimal-kubra.mp3" },
+  { title: "Ethereal Echo", duration: "02:56", src: "/audio/ethereal-echo.mp3" },
+  { title: "Giants from the East and Elders", duration: "03:21", src: "/audio/giants-from-the-east-and-elders.mp3" },
+];
+---
+
+<Layout title="GlenGlen">
+  <!-- Background Image with Overlay -->
+  <div class="absolute inset-0 z-0 pointer-events-none">
+    <img
+      alt="Background"
+      class="w-full h-full object-cover"
+      src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQplVDHVOF93Trnr6oHxZzmXHdG62q3XLdmf6sBW5hOVPmvUwybHtJxFzdgBtPl9h_JWwYj4SOnVv-BspY83J4WGt1qjU7VqYYUSz6EnN_-oyTgT0Fie3tmobyBKalW9qfr59MDoHfMpvvawZ4KFa1rUkiWJMTi2K3MHTBPD3J2gkFmyzrsGathUNXMUt3pz5oQwqO8CbsP3WrLP29nMeOZaVkzNpOQQmqLL1ERfkhIWKGS0JCR5ljCgGrmC5TRBG5dY0xoUfBt6Bg"
+    />
+    <div class="absolute inset-0 bg-background/60 backdrop-blur-[2px]"></div>
+  </div>
+
+  <!-- Main Content Canvas -->
+  <main
+    class="relative z-10 flex-grow flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop w-full h-full"
+  >
+    <!-- Band Identity -->
+    <div class="text-center mb-12 transform hover:scale-105 transition-transform duration-700 ease-out">
+      <h1
+        class="font-display-lg text-[10vw] leading-none text-primary drop-shadow-[0_0_20px_rgba(86,251,160,0.3)] tracking-tighter mix-blend-screen"
+      >
+        GlenGlen
+      </h1>
+      <div class="mt-4 inline-block glass-panel rounded-full px-6 py-2 bg-surface/30">
+        <span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase">Psychedelic Rock</span>
+      </div>
+    </div>
+
+    <!-- Music Player Container -->
+    <div class="w-full max-w-2xl glass-panel bg-surface/20 rounded-xl overflow-hidden flex flex-col backdrop-blur-xl">
+      <!-- Tracklist -->
+      <div class="p-unit md:p-gutter">
+        <ul class="flex flex-col gap-2" id="tracklist">
+          {
+            tracks.map((track, i) => (
+              <li
+                class:list={[
+                  "track-item flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer group",
+                  i === 0 ? "bg-white/5 hover:bg-white/10" : "hover:bg-white/5",
+                ]}
+                data-index={i}
+                data-src={track.src}
+                data-title={track.title}
+              >
+                <div class="flex items-center gap-4">
+                  <span
+                    class:list={[
+                      "track-indicator relative flex items-center justify-center w-6 h-6 transition-colors group-hover:text-primary",
+                      i === 0 ? "text-primary/50" : "text-on-surface-variant/50",
+                    ]}
+                  >
+                    {/* Play icon: shown by default; hidden while this track is playing */}
+                    <span class="track-icon-play material-symbols-outlined absolute inset-0 flex items-center justify-center">
+                      play_arrow
+                    </span>
+                    {/* Pause icon: shown on hover while this track is playing */}
+                    <span class="track-icon-pause material-symbols-outlined absolute inset-0 hidden items-center justify-center text-primary">
+                      pause
+                    </span>
+                    {/* Animated equalizer: shown while this track is playing (and not hovered) */}
+                    <span class="track-eq hidden gap-[2px] items-end h-3 text-primary" aria-hidden="true">
+                      <span class="eq-bar"></span>
+                      <span class="eq-bar"></span>
+                      <span class="eq-bar"></span>
+                    </span>
+                  </span>
+                  <div>
+                    <h3
+                      class:list={[
+                        "track-title font-body-md text-[17px] leading-snug tracking-[-0.01em] transition-colors group-hover:text-on-surface",
+                        i === 0 ? "text-on-surface font-semibold" : "text-on-surface/80 font-medium",
+                      ]}
+                    >
+                      {track.title}
+                    </h3>
+                    <p
+                      class:list={[
+                        "font-label-sm text-[11px] tracking-wider mt-0.5 tabular-nums",
+                        i === 0 ? "text-on-surface-variant" : "text-on-surface-variant/70",
+                      ]}
+                    >
+                      {track.duration}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <!-- Current Track Controls (Integrated into container) -->
+      <div class="bg-surface-container-high/40 p-gutter border-t border-tertiary/10 flex flex-col gap-4">
+        <!-- Progress Bar -->
+        <div class="w-full flex items-center gap-3">
+          <span class="font-label-sm text-label-sm text-on-surface-variant" id="current-time">00:00</span>
+          <div
+            class="flex-grow h-1 bg-surface-variant rounded-full overflow-hidden relative cursor-pointer"
+            id="progress-track"
+          >
+            <div
+              class="absolute top-0 left-0 h-full w-0 bg-secondary rounded-full shadow-[0_0_10px_rgba(149,204,255,0.8)]"
+              id="progress-fill"
+            >
+            </div>
+          </div>
+          <span class="font-label-sm text-label-sm text-on-surface-variant" id="total-time">00:00</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-12 h-12 rounded-md bg-surface-variant/50 flex items-center justify-center overflow-hidden relative shrink-0">
+              <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
+              <span class="material-symbols-outlined text-primary/80 absolute">graphic_eq</span>
+            </div>
+            <div class="hidden sm:block min-w-0">
+              <h4 class="font-body-md text-on-surface font-semibold leading-tight truncate" id="now-playing-title">
+                {tracks[0].title}
+              </h4>
+              <p class="font-label-sm text-on-surface-variant/70">GlenGlen</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-6 justify-self-center">
+            <button class="text-on-surface-variant hover:text-secondary transition-colors" id="prev-btn">
+              <span class="material-symbols-outlined">skip_previous</span>
+            </button>
+            <button
+              class="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center neon-glow hover:scale-105 active:scale-95 transition-all"
+              id="play-btn"
+            >
+              <span class="material-symbols-outlined" id="play-icon" style="font-variation-settings: 'FILL' 1;">
+                play_arrow
+              </span>
+            </button>
+            <button class="text-on-surface-variant hover:text-secondary transition-colors" id="next-btn">
+              <span class="material-symbols-outlined">skip_next</span>
+            </button>
+          </div>
+          <div class="hidden sm:flex items-center gap-2 justify-self-end">
+            <span class="material-symbols-outlined text-on-surface-variant text-sm">volume_up</span>
+            <div class="w-16 h-1 bg-surface-variant rounded-full overflow-hidden cursor-pointer" id="volume-track">
+              <div class="h-full w-2/3 bg-primary/70 rounded-full" id="volume-fill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Audio element driven by the player script -->
+  <audio id="audio" preload="metadata"></audio>
+</Layout>
+
+<script>
+  const audio = document.getElementById("audio") as HTMLAudioElement;
+  const items = Array.from(document.querySelectorAll<HTMLLIElement>(".track-item"));
+  const playBtn = document.getElementById("play-btn");
+  const playIcon = document.getElementById("play-icon");
+  const prevBtn = document.getElementById("prev-btn");
+  const nextBtn = document.getElementById("next-btn");
+  const progressTrack = document.getElementById("progress-track");
+  const progressFill = document.getElementById("progress-fill");
+  const currentTimeEl = document.getElementById("current-time");
+  const totalTimeEl = document.getElementById("total-time");
+  const nowPlayingTitle = document.getElementById("now-playing-title");
+  const volumeTrack = document.getElementById("volume-track");
+  const volumeFill = document.getElementById("volume-fill");
+
+  let current = 0;
+
+  const fmt = (s: number) => {
+    if (!isFinite(s)) return "00:00";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  };
+
+  function highlight(index: number) {
+    items.forEach((item, i) => {
+      const icon = item.querySelector(".track-icon");
+      const title = item.querySelector(".track-title");
+      if (i === index) {
+        item.classList.add("bg-white/5");
+        icon?.classList.add("text-primary/50");
+        icon?.classList.remove("text-on-surface-variant/50");
+        title?.classList.add("text-on-surface", "font-semibold");
+        title?.classList.remove("text-on-surface/80", "font-medium");
+      } else {
+        item.classList.remove("bg-white/5");
+        icon?.classList.remove("text-primary/50");
+        icon?.classList.add("text-on-surface-variant/50");
+        title?.classList.remove("text-on-surface", "font-semibold");
+        title?.classList.add("text-on-surface/80", "font-medium");
+      }
+    });
+  }
+
+  function setPlayingState(playing: boolean) {
+    items.forEach((item, i) => {
+      item.classList.toggle("is-playing", playing && i === current);
+    });
+  }
+
+  function load(index: number, autoplay = false) {
+    const item = items[index];
+    if (!item) return;
+    current = index;
+    audio.src = item.dataset.src ?? "";
+    if (nowPlayingTitle) nowPlayingTitle.textContent = item.dataset.title ?? "";
+    highlight(index);
+    setPlayingState(false);
+    if (autoplay) audio.play();
+  }
+
+  function togglePlay() {
+    if (!audio.src) load(current);
+    if (audio.paused) audio.play();
+    else audio.pause();
+  }
+
+  playBtn?.addEventListener("click", togglePlay);
+  prevBtn?.addEventListener("click", () => load((current - 1 + items.length) % items.length, !audio.paused));
+  nextBtn?.addEventListener("click", () => load((current + 1) % items.length, !audio.paused));
+
+  items.forEach((item, i) => {
+    item.addEventListener("click", () => {
+      // Clicking the track that's already loaded toggles play/pause
+      // instead of restarting it; clicking a different track loads + plays it.
+      if (i === current && audio.src) {
+        togglePlay();
+      } else {
+        load(i, true);
+      }
+    });
+  });
+
+  audio.addEventListener("play", () => {
+    if (playIcon) playIcon.textContent = "pause";
+    setPlayingState(true);
+  });
+  audio.addEventListener("pause", () => {
+    if (playIcon) playIcon.textContent = "play_arrow";
+    setPlayingState(false);
+  });
+  audio.addEventListener("ended", () => load((current + 1) % items.length, true));
+
+  audio.addEventListener("loadedmetadata", () => {
+    if (totalTimeEl) totalTimeEl.textContent = fmt(audio.duration);
+  });
+  audio.addEventListener("timeupdate", () => {
+    if (currentTimeEl) currentTimeEl.textContent = fmt(audio.currentTime);
+    if (progressFill && audio.duration) {
+      progressFill.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+    }
+  });
+
+  progressTrack?.addEventListener("click", (e) => {
+    if (!audio.duration) return;
+    const rect = progressTrack.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = ratio * audio.duration;
+  });
+
+  volumeTrack?.addEventListener("click", (e) => {
+    const rect = volumeTrack.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    audio.volume = ratio;
+    if (volumeFill) volumeFill.style.width = `${ratio * 100}%`;
+  });
+
+  // Preload the first track's metadata
+  load(0);
+</script>
