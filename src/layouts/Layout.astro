@@ -1,9 +1,26 @@
 ---
 interface Props {
   title?: string;
+  description?: string;
+  image?: string;
+  /** Optional JSON-LD structured data object(s) to embed in <head>. */
+  schema?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const { title = "GlenGlen" } = Astro.props;
+// Update this to your production domain so that canonical/social URLs
+// resolve to absolute links.
+const SITE_URL = "https://glen-glen.vercel.app/";
+
+const {
+  title = "GlenGlen",
+  description = "GlenGlen — psychedelic rock. Listen to the latest tracks.",
+  image = "/og-image.png",
+  schema,
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, SITE_URL).href;
+const imageUrl = new URL(image, SITE_URL).href;
+const schemaList = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
 ---
 
 <!DOCTYPE html>
@@ -11,7 +28,39 @@ const { title = "GlenGlen" } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#0b1513" />
     <title>{title}</title>
+
+    <!-- Primary meta -->
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <!-- Open Graph (Facebook, LinkedIn, Discord, etc.) -->
+    <meta property="og:type" content="music.musician" />
+    <meta property="og:site_name" content="GlenGlen" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="GlenGlen — Psychedelic Rock" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
+    <meta name="twitter:image:alt" content="GlenGlen — Psychedelic Rock" />
+
+    <!-- Structured data (schema.org JSON-LD) -->
+    {
+      schemaList.map((entry) => (
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(entry)} />
+      ))
+    }
+
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" is:inline></script>
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />

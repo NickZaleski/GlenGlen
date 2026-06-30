@@ -16,9 +16,56 @@ const tracks = [
   { title: "Ethereal Echo", duration: "02:56", src: "/audio/ethereal-echo.mp3" },
   { title: "Giants from the East and Elders", duration: "03:21", src: "/audio/giants-from-the-east-and-elders.mp3" },
 ];
+
+const SITE_URL = "https://glen-glen.vercel.app/";
+const GENRE = "Psychedelic Rock";
+const description = `GlenGlen — ${GENRE}. Stream the latest tracks including ${tracks
+  .slice(0, 3)
+  .map((t) => t.title)
+  .join(", ")} and more.`;
+
+// Convert "mm:ss" to ISO 8601 duration (e.g. "02:52" -> "PT2M52S").
+const toIso = (mmss: string) => {
+  const [m, s] = mmss.split(":").map(Number);
+  return `PT${m}M${s}S`;
+};
+
+const abs = (path: string) => new URL(path, SITE_URL).href;
+
+// schema.org: the band, with its catalogue of recordings.
+const musicGroupSchema = {
+  "@context": "https://schema.org",
+  "@type": "MusicGroup",
+  name: "GlenGlen",
+  genre: GENRE,
+  url: SITE_URL,
+  image: abs("/og-image.png"),
+  track: tracks.map((t) => ({
+    "@type": "MusicRecording",
+    name: t.title,
+    duration: toIso(t.duration),
+    byArtist: { "@type": "MusicGroup", name: "GlenGlen" },
+    associatedMedia: {
+      "@type": "AudioObject",
+      contentUrl: abs(t.src),
+      encodingFormat: "audio/mpeg",
+    },
+  })),
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "GlenGlen",
+  url: SITE_URL,
+};
 ---
 
-<Layout title="GlenGlen">
+<Layout
+  title="GlenGlen — Psychedelic Rock"
+  description={description}
+  schema={[musicGroupSchema, websiteSchema]}
+>
   <!-- Background Image with Overlay -->
   <div class="absolute inset-0 z-0 pointer-events-none">
     <img
@@ -36,7 +83,7 @@ const tracks = [
     <!-- Band Identity -->
     <div class="text-center mb-12 transform hover:scale-105 transition-transform duration-700 ease-out">
       <h1
-        class="font-display-lg text-[10vw] leading-none text-primary drop-shadow-[0_0_20px_rgba(86,251,160,0.3)] tracking-tighter mix-blend-screen"
+        class="font-display-lg leading-none text-primary drop-shadow-[0_0_20px_rgba(86,251,160,0.3)] tracking-tighter mix-blend-screen text-[clamp(3rem,10vw,7rem)]"
       >
         GlenGlen
       </h1>
