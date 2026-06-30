@@ -66,8 +66,8 @@ const websiteSchema = {
   description={description}
   schema={[musicGroupSchema, websiteSchema]}
 >
-  <!-- Background Image with Overlay -->
-  <div class="absolute inset-0 z-0 pointer-events-none">
+  <!-- Background Image with Overlay (fixed so it covers the viewport even when the page scrolls on mobile) -->
+  <div class="fixed inset-0 z-0 pointer-events-none">
     <img
       alt="Background"
       class="w-full h-full object-cover"
@@ -78,40 +78,40 @@ const websiteSchema = {
 
   <!-- Main Content Canvas -->
   <main
-    class="relative z-10 flex-grow flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop w-full h-full"
+    class="relative z-10 flex-grow flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop w-full py-10 md:py-12 gap-8 md:gap-14"
   >
     <!-- Band Identity -->
-    <div class="text-center mb-12 transform hover:scale-105 transition-transform duration-700 ease-out">
+    <div class="text-center transform hover:scale-105 transition-transform duration-700 ease-out">
       <h1
-        class="font-display-lg leading-none text-primary drop-shadow-[0_0_20px_rgba(86,251,160,0.3)] tracking-tighter mix-blend-screen text-[clamp(3rem,10vw,7rem)]"
+        class="font-display-lg leading-none text-primary drop-shadow-[0_0_30px_rgba(86,251,160,0.35)] tracking-tighter mix-blend-screen text-[clamp(3.5rem,13vw,11rem)]"
       >
         GlenGlen
       </h1>
-      <div class="mt-4 inline-block glass-panel rounded-full px-6 py-2 bg-surface/30">
-        <span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase">Psychedelic Rock</span>
+      <div class="mt-5 md:mt-6 inline-block glass-panel rounded-full px-6 py-2 md:px-8 md:py-2.5 bg-surface/30">
+        <span class="font-label-sm text-label-sm md:text-sm text-secondary tracking-[0.25em] uppercase">Psychedelic Rock</span>
       </div>
     </div>
 
     <!-- Music Player Container -->
-    <div class="w-full max-w-2xl glass-panel bg-surface/20 rounded-xl overflow-hidden flex flex-col backdrop-blur-xl">
+    <div class="w-full max-w-2xl lg:max-w-3xl glass-panel bg-surface/20 rounded-xl overflow-hidden flex flex-col backdrop-blur-xl">
       <!-- Tracklist -->
-      <div class="p-unit md:p-gutter">
-        <ul class="flex flex-col gap-2" id="tracklist">
+      <div class="p-2 sm:p-unit md:p-gutter">
+        <ul class="flex flex-col gap-1 sm:gap-2" id="tracklist">
           {
             tracks.map((track, i) => (
               <li
                 class:list={[
-                  "track-item flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer group",
+                  "track-item flex items-center justify-between p-3 md:p-4 rounded-lg transition-colors cursor-pointer group min-h-[56px]",
                   i === 0 ? "bg-white/5 hover:bg-white/10" : "hover:bg-white/5",
                 ]}
                 data-index={i}
                 data-src={track.src}
                 data-title={track.title}
               >
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 md:gap-5 min-w-0">
                   <span
                     class:list={[
-                      "track-indicator relative flex items-center justify-center w-6 h-6 transition-colors group-hover:text-primary",
+                      "track-indicator relative flex items-center justify-center w-6 h-6 md:w-7 md:h-7 shrink-0 transition-colors group-hover:text-primary",
                       i === 0 ? "text-primary/50" : "text-on-surface-variant/50",
                     ]}
                   >
@@ -130,10 +130,10 @@ const websiteSchema = {
                       <span class="eq-bar"></span>
                     </span>
                   </span>
-                  <div>
+                  <div class="min-w-0">
                     <h3
                       class:list={[
-                        "track-title font-body-md text-[17px] leading-snug tracking-[-0.01em] transition-colors group-hover:text-on-surface",
+                        "track-title font-body-md text-[16px] sm:text-[17px] md:text-[19px] leading-snug tracking-[-0.01em] truncate transition-colors group-hover:text-on-surface",
                         i === 0 ? "text-on-surface font-semibold" : "text-on-surface/80 font-medium",
                       ]}
                     >
@@ -141,7 +141,7 @@ const websiteSchema = {
                     </h3>
                     <p
                       class:list={[
-                        "font-label-sm text-[11px] tracking-wider mt-0.5 tabular-nums",
+                        "font-label-sm text-[11px] md:text-[12px] tracking-wider mt-0.5 tabular-nums",
                         i === 0 ? "text-on-surface-variant" : "text-on-surface-variant/70",
                       ]}
                     >
@@ -156,7 +156,7 @@ const websiteSchema = {
       </div>
 
       <!-- Current Track Controls (Integrated into container) -->
-      <div class="bg-surface-container-high/40 p-gutter border-t border-tertiary/10 flex flex-col gap-4">
+      <div class="bg-surface-container-high/40 p-4 sm:p-gutter md:p-8 border-t border-tertiary/10 flex flex-col gap-4 md:gap-5">
         <!-- Progress Bar -->
         <div class="w-full flex items-center gap-3">
           <span class="font-label-sm text-label-sm text-on-surface-variant tabular-nums w-10 text-right" id="current-time">
@@ -198,38 +198,50 @@ const websiteSchema = {
         </div>
 
         <!-- Controls -->
-        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-12 h-12 rounded-md bg-surface-variant/50 flex items-center justify-center overflow-hidden relative shrink-0">
+        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-4">
+          <!-- Now playing (artwork + title). Title shows on every viewport. -->
+          <div class="flex items-center gap-3 md:gap-4 min-w-0">
+            <div class="w-12 h-12 md:w-14 md:h-14 rounded-md bg-surface-variant/50 flex items-center justify-center overflow-hidden relative shrink-0">
               <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
-              <span class="material-symbols-outlined text-primary/80 absolute">graphic_eq</span>
+              <span class="material-symbols-outlined text-primary/80 absolute md:text-[28px]">graphic_eq</span>
             </div>
-            <div class="hidden sm:block min-w-0">
-              <h4 class="font-body-md text-on-surface font-semibold leading-tight truncate" id="now-playing-title">
+            <div class="min-w-0">
+              <h4 class="font-body-md text-[15px] md:text-[17px] text-on-surface font-semibold leading-tight truncate" id="now-playing-title">
                 {tracks[0].title}
               </h4>
-              <p class="font-label-sm text-on-surface-variant/70">GlenGlen</p>
+              <p class="font-label-sm text-on-surface-variant/70 text-[11px] md:text-xs">GlenGlen</p>
             </div>
           </div>
-          <div class="flex items-center gap-6 justify-self-center">
-            <button class="text-on-surface-variant hover:text-secondary transition-colors" id="prev-btn">
-              <span class="material-symbols-outlined">skip_previous</span>
+          <!-- Transport -->
+          <div class="flex items-center gap-4 sm:gap-6 md:gap-7 justify-self-center">
+            <button
+              class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-secondary active:scale-95 transition-all"
+              id="prev-btn"
+              aria-label="Previous track"
+            >
+              <span class="material-symbols-outlined md:text-[28px]">skip_previous</span>
             </button>
             <button
-              class="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center neon-glow hover:scale-105 active:scale-95 transition-all"
+              class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary text-on-primary flex items-center justify-center neon-glow hover:scale-105 active:scale-95 transition-all"
               id="play-btn"
+              aria-label="Play or pause"
             >
-              <span class="material-symbols-outlined" id="play-icon" style="font-variation-settings: 'FILL' 1;">
+              <span class="material-symbols-outlined md:text-[32px]" id="play-icon" style="font-variation-settings: 'FILL' 1;">
                 play_arrow
               </span>
             </button>
-            <button class="text-on-surface-variant hover:text-secondary transition-colors" id="next-btn">
-              <span class="material-symbols-outlined">skip_next</span>
+            <button
+              class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-secondary active:scale-95 transition-all"
+              id="next-btn"
+              aria-label="Next track"
+            >
+              <span class="material-symbols-outlined md:text-[28px]">skip_next</span>
             </button>
           </div>
+          <!-- Volume (pointer devices only; touch users use OS volume). -->
           <div class="hidden sm:flex items-center gap-2 justify-self-end">
             <span class="material-symbols-outlined text-on-surface-variant text-sm">volume_up</span>
-            <div class="w-16 h-1 bg-surface-variant rounded-full overflow-hidden cursor-pointer" id="volume-track">
+            <div class="w-16 md:w-24 h-1.5 bg-surface-variant rounded-full overflow-hidden cursor-pointer" id="volume-track">
               <div class="h-full w-2/3 bg-primary/70 rounded-full" id="volume-fill"></div>
             </div>
           </div>
@@ -342,11 +354,48 @@ const websiteSchema = {
   }
 
   // ===== Crossfade engine =====
-  let crossfadeRAF = 0;
+  //
+  // Background-tab correctness: when a tab is open but NOT focused/visible,
+  // browsers throttle requestAnimationFrame to a near-stop and slow `timeupdate`
+  // events down to ~once per second or worse. Relying on those alone makes track
+  // switching lag (the next track starts late) or hang mid-fade. To stay gapless
+  // regardless of visibility we:
+  //   1. SCHEDULE the crossfade with a setTimeout armed from track metadata, so
+  //      it fires on time even when timeupdate is throttled.
+  //   2. RAMP volume off a timer-driven clock (setInterval) instead of rAF, so
+  //      the fade completes even when rAF is frozen. Timers keep firing in
+  //      background tabs (clamped, but they fire); rAF does not.
+  //   3. Keep `ended` as a final safety net.
+  let crossfadeTimer = 0; // setInterval handle driving the volume ramp
+  let crossfadeStart = 0; // performance.now() when the current fade began
+  let scheduledFadeTimeout = 0; // setTimeout handle that triggers startCrossfade
+
+  function clearScheduledFade() {
+    if (scheduledFadeTimeout) clearTimeout(scheduledFadeTimeout);
+    scheduledFadeTimeout = 0;
+  }
+
+  // Arm a timer to begin the crossfade exactly CROSSFADE_SECONDS before the end
+  // of the active deck. Re-armed on metadata load, seek, and play. This is the
+  // primary trigger; `timeupdate` is only a backup for when the timer drifts.
+  function scheduleFade() {
+    clearScheduledFade();
+    const deck = audio();
+    if (!deck.duration || !isFinite(deck.duration) || deck.paused) return;
+    const remaining = deck.duration - deck.currentTime - CROSSFADE_SECONDS;
+    if (remaining <= 0) {
+      if (!crossfading) startCrossfade();
+      return;
+    }
+    scheduledFadeTimeout = window.setTimeout(() => {
+      if (!crossfading && !audio().paused) startCrossfade();
+    }, remaining * 1000);
+  }
 
   function cancelCrossfade() {
-    if (crossfadeRAF) cancelAnimationFrame(crossfadeRAF);
-    crossfadeRAF = 0;
+    if (crossfadeTimer) clearInterval(crossfadeTimer);
+    crossfadeTimer = 0;
+    clearScheduledFade();
     crossfading = false;
     // Make sure the background deck is stopped and silenced.
     const bg = other();
@@ -358,6 +407,7 @@ const websiteSchema = {
   // Begin overlapping the next track on the other deck and ramp volumes.
   function startCrossfade() {
     if (crossfading) return;
+    clearScheduledFade();
     const nextIndex = (current + 1) % items.length;
     const item = items[nextIndex];
     if (!item) return;
@@ -379,29 +429,35 @@ const websiteSchema = {
 
     toDeck.play().catch(() => {});
 
-    const start = performance.now();
+    crossfadeStart = performance.now();
     const durationMs = CROSSFADE_SECONDS * 1000;
 
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / durationMs);
+    const apply = () => {
+      const t = Math.min(1, (performance.now() - crossfadeStart) / durationMs);
       // Equal-power crossfade keeps perceived loudness constant (no dip).
       const inGain = Math.sin((t * Math.PI) / 2);
       const outGain = Math.cos((t * Math.PI) / 2);
       toDeck.volume = masterVolume * inGain;
       fromDeck.volume = masterVolume * outGain;
-
-      if (t < 1) {
-        crossfadeRAF = requestAnimationFrame(step);
-      } else {
+      if (t >= 1) {
+        if (crossfadeTimer) clearInterval(crossfadeTimer);
+        crossfadeTimer = 0;
         fromDeck.pause();
         fromDeck.currentTime = 0;
         fromDeck.volume = masterVolume;
         toDeck.volume = masterVolume;
         crossfading = false;
-        crossfadeRAF = 0;
+        // Arm the next track's fade as soon as this one settles.
+        scheduleFade();
       }
     };
-    crossfadeRAF = requestAnimationFrame(step);
+
+    // A ~30ms interval is silky when visible and still advances (clamped to
+    // ~1s) when hidden — either way the fade reaches completion. rAF would
+    // freeze entirely in a background tab, so we deliberately avoid it here.
+    if (crossfadeTimer) clearInterval(crossfadeTimer);
+    crossfadeTimer = window.setInterval(apply, 30);
+    apply();
   }
 
   playBtn?.addEventListener("click", togglePlay);
@@ -427,15 +483,20 @@ const websiteSchema = {
       if (deck !== audio()) return;
       if (playIcon) playIcon.textContent = "pause";
       setPlayingState(true);
+      // (Re)arm the timer-based fade trigger now that we're actually playing.
+      if (!crossfading) scheduleFade();
     });
     deck.addEventListener("pause", () => {
       if (deck !== audio() || crossfading) return;
       if (playIcon) playIcon.textContent = "play_arrow";
       setPlayingState(false);
+      // No point holding a fade timer for a paused track; it re-arms on play.
+      clearScheduledFade();
     });
     deck.addEventListener("loadedmetadata", () => {
       if (deck !== audio()) return;
       if (totalTimeEl) totalTimeEl.textContent = fmt(deck.duration);
+      scheduleFade();
     });
     deck.addEventListener("timeupdate", () => {
       if (deck !== audio()) return;
@@ -482,6 +543,8 @@ const websiteSchema = {
     deck.currentTime = ratio * deck.duration;
     renderProgress(ratio);
     if (currentTimeEl) currentTimeEl.textContent = fmt(deck.currentTime);
+    // Remaining time changed → re-arm the scheduled fade.
+    if (!crossfading) scheduleFade();
   };
 
   // Hover preview: show where a click would land.
@@ -538,6 +601,7 @@ const websiteSchema = {
     if (handled) {
       e.preventDefault();
       renderProgress(deck.currentTime / deck.duration);
+      if (!crossfading) scheduleFade();
     }
   });
 
@@ -548,6 +612,19 @@ const websiteSchema = {
     // Apply immediately unless a crossfade is mid-ramp (it owns volume then).
     if (!crossfading) audio().volume = masterVolume;
     if (volumeFill) volumeFill.style.width = `${ratio * 100}%`;
+  });
+
+  // When the tab regains focus, timers may have been clamped/drifted while
+  // hidden. Re-sync the progress UI and re-arm the fade schedule against the
+  // real currentTime so nothing is left stale by background throttling.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    const deck = audio();
+    if (deck.duration && !scrubbing) {
+      renderProgress(deck.currentTime / deck.duration);
+      if (currentTimeEl) currentTimeEl.textContent = fmt(deck.currentTime);
+    }
+    if (!crossfading && !deck.paused) scheduleFade();
   });
 
   // Preload the first track's metadata

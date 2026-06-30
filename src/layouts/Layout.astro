@@ -159,6 +159,48 @@ const schemaList = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
         },
       };
     </script>
+    <!--
+      Material Symbols renders via ligatures: the literal text "play_arrow"
+      becomes a glyph only once the icon font loads. Until then the browser
+      paints the raw word. We hide icon glyphs until the font is confirmed
+      ready (html.icons-ready), keeping their box reserved so nothing shifts.
+    -->
+    <style is:global>
+      html:not(.icons-ready) .material-symbols-outlined {
+        visibility: hidden;
+      }
+      /* Reserve the glyph's box so layout doesn't jump when icons appear. */
+      .material-symbols-outlined {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1em;
+        line-height: 1;
+      }
+    </style>
+    <script is:inline>
+      // Reveal icons as soon as the Material Symbols font is loaded. Fall back
+      // to a timeout so icons never stay hidden if the Font Loading API or the
+      // network misbehaves.
+      (function () {
+        var reveal = function () {
+          document.documentElement.classList.add("icons-ready");
+        };
+        if (document.fonts && document.fonts.load) {
+          document.fonts
+            .load('24px "Material Symbols Outlined"')
+            .then(function () {
+              return document.fonts.ready;
+            })
+            .then(reveal)
+            .catch(reveal);
+          // Hard fallback in case the promise never settles.
+          setTimeout(reveal, 2000);
+        } else {
+          reveal();
+        }
+      })();
+    </script>
     <style is:global>
       .glass-panel {
         backdrop-filter: blur(20px);
@@ -258,7 +300,7 @@ const schemaList = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
     </style>
   </head>
   <body
-    class="bg-background text-on-surface h-screen w-screen overflow-hidden flex flex-col font-body-md relative"
+    class="bg-background text-on-surface min-h-screen w-full overflow-x-hidden md:h-screen md:overflow-hidden flex flex-col font-body-md relative"
   >
     <slot />
   </body>
