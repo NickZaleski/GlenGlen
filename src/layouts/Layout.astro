@@ -310,11 +310,173 @@ const schemaList = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
       .progress-bar:focus-visible .progress-thumb {
         transform: translateX(50%) translateY(-50%) scale(1);
       }
+
+      /* ==================================================================
+         PSYCHEDELIC DESIGN SYSTEM
+         Oil-slick / liquid-light-show visual language. The palette stays
+         deep and inky; saturated accents (acid green + electric magenta +
+         cyan) are used with glaring contrast rather than as noise.
+         ================================================================== */
+      :root {
+        --acid: #56fba0; /* primary — acid green */
+        --magenta: #ff3ea5; /* electric magenta */
+        --cyan: #35e0ff; /* cyan */
+        --violet: #7c4dff; /* deep violet */
+        --ink: #05100e; /* near-black base */
+      }
+
+      /* --- Audio-reactive liquid canvas sits behind everything --- */
+      #liquid-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        display: block;
+        /* Slight saturation + contrast push reads as "projected light". */
+        filter: saturate(1.25) contrast(1.05);
+      }
+
+      /* --- Film grain: the analog texture that separates "designed" from
+             "gradient generator". Very subtle, animated, non-interactive. --- */
+      .grain-overlay {
+        position: fixed;
+        inset: -50%;
+        width: 200%;
+        height: 200%;
+        z-index: 2;
+        pointer-events: none;
+        opacity: 0.06;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        animation: grain-shift 0.6s steps(3) infinite;
+      }
+      @keyframes grain-shift {
+        0% { transform: translate(0, 0); }
+        33% { transform: translate(-3%, 2%); }
+        66% { transform: translate(2%, -2%); }
+        100% { transform: translate(0, 0); }
+      }
+
+      /* --- Vignette to focus the eye toward the center stage --- */
+      .vignette {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: radial-gradient(
+          ellipse 90% 80% at 50% 45%,
+          transparent 40%,
+          rgba(5, 16, 14, 0.55) 100%
+        );
+      }
+
+      /* --- Chromatic-aberration wordmark ---
+         Three stacked copies (magenta / cyan behind, acid on top) with a
+         gentle liquid warp. This is the Wes-Wilson lineage rendered in code:
+         flowing, distorted, unmistakably psychedelic — but still legible. */
+      .wordmark {
+        position: relative;
+        display: inline-block;
+        line-height: 0.9;
+        isolation: isolate;
+      }
+      .wordmark .layer {
+        display: block;
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+      }
+      .wordmark .layer.base {
+        position: relative;
+        background-image: linear-gradient(
+          180deg,
+          #eafff4 0%,
+          var(--acid) 55%,
+          #17b877 100%
+        );
+        filter: drop-shadow(0 0 34px rgba(86, 251, 160, 0.35));
+      }
+      .wordmark .layer.ghost {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        mix-blend-mode: screen;
+        opacity: 0.85;
+      }
+      .wordmark .layer.ghost.magenta {
+        background-image: linear-gradient(180deg, var(--magenta), #b3006e);
+        animation: chroma-mag 6s ease-in-out infinite;
+      }
+      .wordmark .layer.ghost.cyan {
+        background-image: linear-gradient(180deg, var(--cyan), #0088aa);
+        animation: chroma-cyan 6s ease-in-out infinite;
+      }
+      @keyframes chroma-mag {
+        0%, 100% { transform: translate(-3px, 2px); }
+        50% { transform: translate(-7px, -3px); }
+      }
+      @keyframes chroma-cyan {
+        0%, 100% { transform: translate(3px, -2px); }
+        50% { transform: translate(7px, 3px); }
+      }
+      /* While a track plays the aberration breathes wider — the wordmark
+         itself reacts to the music. Amplitude is set via --pulse from JS. */
+      body.is-playing .wordmark .layer.ghost.magenta {
+        transform: translate(calc(-4px - var(--pulse, 0) * 10px), 2px);
+      }
+      body.is-playing .wordmark .layer.ghost.cyan {
+        transform: translate(calc(4px + var(--pulse, 0) * 10px), -2px);
+      }
+
+      /* --- Genre tag: thin outlined pill with a moving conic sheen --- */
+      .genre-tag {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(86, 251, 160, 0.35);
+        background: rgba(5, 16, 14, 0.35);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      /* --- Reactive glow ring on the play button (amplitude-driven) --- */
+      #play-btn {
+        box-shadow:
+          0 0 calc(18px + var(--pulse, 0) * 40px) rgba(86, 251, 160, calc(0.45 + var(--pulse, 0) * 0.4)),
+          0 0 0 1px rgba(86, 251, 160, 0.3);
+      }
+
+      /* --- Active track row gets an acid left-edge marker --- */
+      .track-item {
+        position: relative;
+      }
+      .track-item.is-playing::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 12%;
+        bottom: 12%;
+        width: 3px;
+        border-radius: 9999px;
+        background: linear-gradient(180deg, var(--acid), var(--cyan));
+        box-shadow: 0 0 12px rgba(86, 251, 160, 0.7);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .grain-overlay,
+        .wordmark .layer.ghost {
+          animation: none;
+        }
+      }
     </style>
   </head>
   <body
     class="bg-background text-on-surface min-h-screen w-full overflow-x-hidden md:h-screen md:overflow-hidden flex flex-col font-body-md relative"
   >
+    <!-- Audio-reactive liquid light show (rendered by /scripts/liquid.ts) -->
+    <canvas id="liquid-canvas" aria-hidden="true"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="grain-overlay" aria-hidden="true"></div>
     <slot />
   </body>
 </html>
