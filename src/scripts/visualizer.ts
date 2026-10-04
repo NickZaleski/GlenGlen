@@ -2,22 +2,24 @@
 //  STRIPE VISUALIZER  —  audio-reactive pinstripes
 // -----------------------------------------------------------------------------
 //  The "journeys" cover is built entirely from horizontal bands. While a track
-//  plays, the thin cream pinstripes between those bands swell with the music:
-//  every element tagged `data-viz-band="n"` receives a smoothed 0..1 level for
-//  frequency band n as its `--b` custom property, and CSS turns that into a
-//  scaleY. Nothing else moves — the page stays as flat as the cover.
+//  plays, the thin stripe under the "journeys" wordmark swells with the
+//  music: every element tagged `data-viz-band="n"` receives a smoothed 0..1
+//  level for frequency band n as its `--b` custom property, and CSS turns that
+//  into a scaleY. Nothing else moves — the page stays as flat as the cover.
 //
 //  Cheap by design: the render loop only runs while playing (plus a short tail
 //  while levels decay back to zero), writes one custom property per tagged
 //  element, and is skipped entirely under prefers-reduced-motion.
 // =============================================================================
 
-// Log-spaced FFT bin edges (fftSize 256 → ~172 Hz per bin at 44.1 kHz):
-// bass, low-mid, mid, presence, air.
-const BAND_EDGES = [0, 2, 5, 11, 24, 64];
-// Higher bands carry less energy in most mixes; lift them so all stripes move.
-const BAND_GAIN = [1, 1.05, 1.2, 1.45, 1.9];
-const BAND_COUNT = BAND_EDGES.length - 1;
+// FFT bin edges (fftSize 1024 → ~43 Hz per bin at 44.1 kHz):
+//   band 0 = kick / bass   (~43–170 Hz)
+//   band 1 = snare / body  (~215–1030 Hz)
+const BAND_EDGES = [
+  [1, 4],
+  [5, 24],
+];
+const BAND_COUNT = BAND_EDGES.length;
 
 export interface VisualizerHandle {
   /** Route an <audio> element's output through the shared analyser. Safe to
@@ -47,8 +49,10 @@ export function initVisualizer(): VisualizerHandle {
     if (!AC) return;
     audioCtx = new AC();
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.75;
+    analyser.fftSize = 1024;
+    // Low smoothing keeps transients (drum hits) sharp; the frame loop does
+    // its own easing.
+    analyser.smoothingTimeConstant = 0.5;
     freqData = new Uint8Array(analyser.frequencyBinCount);
     // Analyser feeds the speakers so audio still plays.
     analyser.connect(audioCtx.destination);
@@ -61,7 +65,15 @@ export function initVisualizer(): VisualizerHandle {
     el,
     band: Math.min(BAND_COUNT - 1, Number(el.dataset.vizBand) || 0),
   }));
-  const levels = new Float32Array(BAND_COUNT);
+  const levels = new Float32Array(BAND_COUNT); // eased output, 0..1
+  // Adaptive normalisation. A mastered rock mix is loud in the low end all
+  // the time, so absolute level would pin the stripes at maximum. Instead we
+  // track each band's running average (slow) and recent peak, and output how
+  // far the current frame sits above the average — i.e. the beats.
+  const avgLevel = new Float32Array(BAND_COUNT);
+  const peakLevel = new Float32Array(BAND_COUNT);
+  // Per band: 0 → seed avg/peak from the first audible frame.
+  const seeded = new Uint8Array(BAND_COUNT);
 
   let active = false;
   let raf = 0;
@@ -75,18 +87,28 @@ export function initVisualizer(): VisualizerHandle {
     if (analyser && freqData) analyser.getByteFrequencyData(freqData);
     for (let b = 0; b < BAND_COUNT; b++) {
       let target = 0;
-      if (freqData) {
-        const start = BAND_EDGES[b];
-        const end = BAND_EDGES[b + 1];
+      if (freqData && active) {
+        const [start, end] = BAND_EDGES[b];
         let sum = 0;
         for (let i = start; i < end; i++) sum += freqData[i];
-        // Square the normalized level so quiet passages stay calm and only
-        // real hits push the stripes wide.
-        const avg = sum / (end - start) / 255;
-        target = Math.min(1, avg * avg * BAND_GAIN[b] * 1.6);
+        const raw = sum / (end - start) / 255;
+        if (!seeded[b]) {
+          // Start from the music's actual level (skipping the silent frames
+          // while the track loads), otherwise the first seconds of every play
+          // read as one long "beat" and pin the stripes wide.
+          if (raw < 0.02) continue;
+          avgLevel[b] = raw;
+          peakLevel[b] = raw;
+          seeded[b] = 1;
+        }
+        avgLevel[b] += (raw - avgLevel[b]) * 0.015; // ~1 s memory
+        peakLevel[b] = Math.max(raw, peakLevel[b] * 0.998); // slow peak decay
+        const range = Math.max(0.06, peakLevel[b] - avgLevel[b]);
+        target = Math.min(1, Math.max(0, (raw - avgLevel[b]) / range));
       }
-      // Fast attack, slow release — reads as "breathing", not flickering.
-      const k = target > levels[b] ? 0.5 : 0.1;
+      // Gentle easing both ways so the stripes swell and settle slowly
+      // rather than twitching on every hit.
+      const k = target > levels[b] ? 0.12 : 0.035;
       levels[b] += (target - levels[b]) * k;
       energy += levels[b];
     }
@@ -120,6 +142,7 @@ export function initVisualizer(): VisualizerHandle {
       if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
     },
     setActive(next) {
+      if (next && !active) seeded.fill(0);
       active = next;
       if (active && !raf && !reduced && targets.length) {
         raf = requestAnimationFrame(frame);
