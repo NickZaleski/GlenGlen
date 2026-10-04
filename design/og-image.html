@@ -1,0 +1,76 @@
+<!doctype html>
+<!--
+  Source for public/og-image.png (1200×630), drawn in the "journeys" cover
+  style. Regenerate after edits with:
+
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+    --hide-scrollbars --window-size=1200,630 --virtual-time-budget=5000 \
+    --screenshot=public/og-image.png "file://$PWD/design/og-image.html"
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Roboto+Slab:wght@600&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --green: #88af38;
+        --cream: #feffef;
+        --ink: #2e3b10;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: var(--green);
+      }
+      .sleeve {
+        display: flex;
+        flex-direction: column;
+        height: 630px;
+      }
+      .g { background: var(--green); }
+      .c { background: var(--cream); }
+      .word {
+        font-family: "Alfa Slab One", serif;
+        font-size: 134px;
+        line-height: 1;
+        color: var(--ink);
+        padding: 4px 64px 0;
+        height: 168px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+      }
+      .word.right { justify-content: flex-end; }
+      .label {
+        font: 600 26px/1 "Roboto Slab", serif;
+        letter-spacing: 0.04em;
+        color: var(--ink);
+        padding: 0 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sleeve">
+      <div class="g" style="height: 46px"></div>
+      <div class="c" style="height: 7px"></div>
+      <div class="g" style="height: 12px"></div>
+      <div class="c word">glenglen</div>
+      <div class="g" style="height: 50px"></div>
+      <div class="c" style="height: 7px"></div>
+      <div class="g label" style="height: 82px"><span>the new psychedelic rock album · 5 tracks · 13:40</span></div>
+      <div class="c" style="height: 20px"></div>
+      <div class="g" style="height: 34px"></div>
+      <div class="c word right">journeys</div>
+      <div class="g" style="flex: 1"></div>
+    </div>
+  </body>
+</html>

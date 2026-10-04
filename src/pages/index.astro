@@ -2,7 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 
 // =====================================================================
-//  TRACKS  ->  ADD YOUR 5 AUDIO FILES HERE
+//  TRACKS  ->  ADD YOUR AUDIO FILES HERE
 // ---------------------------------------------------------------------
 //  1. Drop the audio files into:  public/audio/
 //  2. Reference them below in `src` as "/audio/<filename>".
@@ -18,266 +18,753 @@ const tracks = [
 ];
 
 const SITE_URL = "https://glen-glen.vercel.app/";
+const ARTIST = "glenglen";
+const ALBUM = "journeys";
 const GENRE = "Psychedelic Rock";
-const description = `GlenGlen — ${GENRE}. Stream the latest tracks including ${tracks
-  .slice(0, 3)
-  .map((t) => t.title)
-  .join(", ")} and more.`;
+const COVER = "/journeys-cover.jpg";
+const LOGO = "/glenglenlogo.png";
+const EMAIL = "glenglen.band@gmail.com";
+
+// "mm:ss" <-> seconds helpers.
+const toSeconds = (mmss: string) => {
+  const [m, s] = mmss.split(":").map(Number);
+  return m * 60 + s;
+};
+const totalSeconds = tracks.reduce((sum, t) => sum + toSeconds(t.duration), 0);
+const totalLabel = `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
 
 // Convert "mm:ss" to ISO 8601 duration (e.g. "02:52" -> "PT2M52S").
 const toIso = (mmss: string) => {
   const [m, s] = mmss.split(":").map(Number);
   return `PT${m}M${s}S`;
 };
+const toIsoSeconds = (sec: number) => `PT${Math.floor(sec / 60)}M${sec % 60}S`;
+
+const title = `${ARTIST} — ${ALBUM}`;
+const description = `${ALBUM} — the new album from ${ARTIST}. ${GENRE}. Stream all ${tracks.length} tracks: ${tracks
+  .slice(0, 3)
+  .map((t) => t.title)
+  .join(", ")} and more.`;
 
 const abs = (path: string) => new URL(path, SITE_URL).href;
+const pad = (n: number) => String(n).padStart(2, "0");
 
-// schema.org: the band, with its catalogue of recordings.
+// schema.org: the band and the album, with its recordings.
+const artistRef = { "@type": "MusicGroup", "@id": `${SITE_URL}#artist`, name: ARTIST };
+const recordings = tracks.map((t) => ({
+  "@type": "MusicRecording",
+  name: t.title,
+  duration: toIso(t.duration),
+  byArtist: artistRef,
+  inAlbum: { "@id": `${SITE_URL}#album` },
+  associatedMedia: {
+    "@type": "AudioObject",
+    contentUrl: abs(t.src),
+    encodingFormat: "audio/mpeg",
+  },
+}));
+
 const musicGroupSchema = {
   "@context": "https://schema.org",
   "@type": "MusicGroup",
-  name: "GlenGlen",
+  "@id": `${SITE_URL}#artist`,
+  name: ARTIST,
+  alternateName: "GlenGlen",
   genre: GENRE,
   url: SITE_URL,
-  image: abs("/og-image.png"),
-  track: tracks.map((t) => ({
-    "@type": "MusicRecording",
-    name: t.title,
-    duration: toIso(t.duration),
-    byArtist: { "@type": "MusicGroup", name: "GlenGlen" },
-    associatedMedia: {
-      "@type": "AudioObject",
-      contentUrl: abs(t.src),
-      encodingFormat: "audio/mpeg",
-    },
-  })),
+  image: abs(LOGO),
+  logo: abs(LOGO),
+  email: EMAIL,
+  album: { "@id": `${SITE_URL}#album` },
+};
+
+const musicAlbumSchema = {
+  "@context": "https://schema.org",
+  "@type": "MusicAlbum",
+  "@id": `${SITE_URL}#album`,
+  name: ALBUM,
+  byArtist: artistRef,
+  genre: GENRE,
+  url: SITE_URL,
+  image: abs(COVER),
+  albumReleaseType: "https://schema.org/AlbumRelease",
+  numTracks: tracks.length,
+  duration: toIsoSeconds(totalSeconds),
+  track: recordings,
 };
 
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "GlenGlen",
+  name: ARTIST,
   url: SITE_URL,
 };
 ---
 
-<Layout
-  title="GlenGlen — Psychedelic Rock"
-  description={description}
-  schema={[musicGroupSchema, websiteSchema]}
->
-  <!-- The audio-reactive liquid background lives in Layout.astro (#liquid-canvas)
-       and covers the viewport behind everything. No static hero image. -->
+<Layout title={title} description={description} schema={[musicGroupSchema, musicAlbumSchema, websiteSchema]}>
+  <!--
+    The page is the album cover, unfolded: a stack of full-bleed horizontal
+    bands. "glenglen" sits top-left and "journeys" bottom-right, exactly as on
+    the sleeve; the tracklist and player live in the bands between. Thin cream
+    pinstripes (.rule) breathe with the music — see scripts/visualizer.ts.
+  -->
+  <div class="page">
+    <div class="band band--green band--top" aria-hidden="true"></div>
+    <div class="rule" data-viz-band="0" aria-hidden="true"><i></i></div>
 
-  <!-- Main Content Canvas -->
-  <main
-    class="relative z-10 flex-grow flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop w-full py-10 md:py-14 gap-9 md:gap-16"
-  >
-    <!-- Band Identity: chromatic-aberration wordmark (see .wordmark in Layout) -->
-    <div class="text-center select-none">
-      <div class="flex justify-center">
-        <h1
-          class="wordmark font-display-lg tracking-tighter text-[clamp(3.75rem,14vw,12rem)]"
-          aria-label="GlenGlen"
-        >
-          <span class="layer ghost magenta" aria-hidden="true">GlenGlen</span>
-          <span class="layer ghost cyan" aria-hidden="true">GlenGlen</span>
-          <span class="layer base">GlenGlen</span>
-        </h1>
-      </div>
-      <div class="genre-tag mt-6 md:mt-7 inline-flex items-center gap-2.5 rounded-full px-6 py-2 md:px-8 md:py-2.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(86,251,160,0.9)] animate-pulse"></span>
-        <span class="font-label-sm text-label-sm md:text-sm text-primary/90 tracking-[0.3em] uppercase">Psychedelic Rock</span>
+    <div class="band band--cream">
+      <div class="wrap">
+        <h1 class="display">{ARTIST}</h1>
       </div>
     </div>
 
-    <!-- Music Player Container -->
-    <div class="w-full max-w-2xl lg:max-w-3xl glass-panel bg-[rgba(5,16,14,0.45)] rounded-2xl overflow-hidden flex flex-col backdrop-blur-2xl shadow-[0_20px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-primary/10">
-      <!-- Tracklist -->
-      <div class="p-2 sm:p-unit md:p-gutter">
-        <ul class="flex flex-col gap-1 sm:gap-2" id="tracklist">
-          {
-            tracks.map((track, i) => (
-              <li
-                class:list={[
-                  "track-item flex items-center justify-between p-3 md:p-4 rounded-lg transition-colors cursor-pointer group min-h-[56px]",
-                  i === 0 ? "bg-white/5 hover:bg-white/10" : "hover:bg-white/5",
-                ]}
-                data-index={i}
-                data-src={track.src}
-                data-title={track.title}
-              >
-                <div class="flex items-center gap-4 md:gap-5 min-w-0">
-                  <span
-                    class:list={[
-                      "track-indicator relative flex items-center justify-center w-6 h-6 md:w-7 md:h-7 shrink-0 transition-colors group-hover:text-primary",
-                      i === 0 ? "text-primary/50" : "text-on-surface-variant/50",
-                    ]}
-                  >
-                    {/* Play icon: shown by default; hidden while this track is playing */}
-                    <span class="track-icon-play material-symbols-outlined absolute inset-0 flex items-center justify-center">
-                      play_arrow
-                    </span>
-                    {/* Pause icon: shown on hover while this track is playing */}
-                    <span class="track-icon-pause material-symbols-outlined absolute inset-0 hidden items-center justify-center text-primary">
-                      pause
-                    </span>
-                    {/* Animated equalizer: shown while this track is playing (and not hovered) */}
-                    <span class="track-eq hidden gap-[2px] items-end h-3 text-primary" aria-hidden="true">
-                      <span class="eq-bar"></span>
-                      <span class="eq-bar"></span>
-                      <span class="eq-bar"></span>
-                    </span>
+    <div class="band band--green band--flex" aria-hidden="true"></div>
+    <div class="rule" data-viz-band="2" aria-hidden="true"><i></i></div>
+
+    <main>
+      <h2 class="sr-only">Tracklist</h2>
+      <ol class="tracks" id="tracklist">
+        {
+          tracks.map((track, i) => (
+            <li
+              class="track-item"
+              data-index={i}
+              data-src={track.src}
+              data-title={track.title}
+            >
+              <button class="track-btn" type="button" aria-label={`Play ${track.title}`}>
+                <span class="track-ind" aria-hidden="true">
+                  <span class="track-num">{pad(i + 1)}</span>
+                  <svg class="ico-play" viewBox="0 0 24 24"><path d="M7 4.5v15L19.5 12z" /></svg>
+                  <svg class="ico-pause" viewBox="0 0 24 24"><path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z" /></svg>
+                  <span class="track-eq">
+                    <span class="eq-bar" />
+                    <span class="eq-bar" />
+                    <span class="eq-bar" />
                   </span>
-                  <div class="min-w-0">
-                    <h3
-                      class:list={[
-                        "track-title font-track-title text-[16px] sm:text-[17px] md:text-[19px] leading-snug tracking-normal truncate transition-colors group-hover:text-on-surface",
-                        i === 0 ? "text-on-surface font-semibold" : "text-on-surface/80 font-medium",
-                      ]}
-                    >
-                      {track.title}
-                    </h3>
-                    <p
-                      class:list={[
-                        "font-label-sm text-[11px] md:text-[12px] tracking-wider mt-0.5 tabular-nums",
-                        i === 0 ? "text-on-surface-variant" : "text-on-surface-variant/70",
-                      ]}
-                    >
-                      {track.duration}
-                    </p>
-                  </div>
-                </div>
-              </li>
-            ))
-          }
-        </ul>
-      </div>
-
-      <!-- Current Track Controls (Integrated into container) -->
-      <div class="relative bg-[rgba(5,16,14,0.55)] p-4 sm:p-gutter md:p-8 border-t border-primary/15 flex flex-col gap-4 md:gap-5">
-        <!-- Progress Bar -->
-        <div class="w-full flex items-center gap-3">
-          <span class="font-label-sm text-label-sm text-on-surface-variant tabular-nums w-10 text-right" id="current-time">
-            00:00
-          </span>
-          <div
-            class="progress-bar group/progress flex-grow relative flex items-center h-4 cursor-pointer select-none touch-none"
-            id="progress-track"
-            role="slider"
-            tabindex="0"
-            aria-label="Seek"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            aria-valuenow="0"
-          >
-            <!-- Rail -->
-            <div class="progress-rail relative w-full h-1 bg-surface-variant rounded-full overflow-visible transition-[height] duration-150 ease-out">
-              <!-- Hover preview (where you'd seek to) -->
-              <div
-                class="absolute top-0 left-0 h-full w-0 bg-on-surface/10 rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity pointer-events-none"
-                id="progress-hover"
-              >
-              </div>
-              <!-- Played portion -->
-              <div
-                class="absolute top-0 left-0 h-full w-0 rounded-full bg-gradient-to-r from-primary to-cyan-300 shadow-[0_0_12px_rgba(86,251,160,0.7)]"
-                style="--tw-gradient-to:#35e0ff;"
-                id="progress-fill"
-              >
-                <!-- Draggable thumb -->
-                <span
-                  class="progress-thumb absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_rgba(86,251,160,0.95)] scale-0 group-hover/progress:scale-100 transition-transform duration-150 ease-out"
-                  id="progress-thumb"
-                >
                 </span>
-              </div>
-            </div>
-          </div>
-          <span class="font-label-sm text-label-sm text-on-surface-variant tabular-nums w-10" id="total-time">00:00</span>
-        </div>
+                <span class="track-title">{track.title}</span>
+                <span class="track-dur">{track.duration}</span>
+              </button>
+            </li>
+          ))
+        }
+      </ol>
 
-        <!-- Controls.
-             Mobile: now-playing row on top, transport centered below.
-             sm+:    three balanced columns (now-playing | transport | volume)
-                     so the transport sits optically centered. -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
-          <!-- Now playing (artwork + title). Shows on every viewport. -->
-          <div class="flex items-center gap-3 md:gap-4 min-w-0 sm:flex-1 sm:basis-0">
-            <div class="now-playing-art w-12 h-12 md:w-14 md:h-14 rounded-md bg-surface-variant/50 flex items-center justify-center overflow-hidden relative shrink-0">
-              <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
-              <!-- Static icon when paused -->
-              <span class="now-playing-icon material-symbols-outlined text-primary/80 absolute md:text-[28px]">graphic_eq</span>
-              <!-- Animated equalizer while playing -->
-              <span class="now-playing-eq track-eq gap-[3px] items-end h-4 md:h-5 text-primary" aria-hidden="true">
-                <span class="eq-bar"></span>
-                <span class="eq-bar"></span>
-                <span class="eq-bar"></span>
-                <span class="eq-bar"></span>
-              </span>
+      <div class="rule" data-viz-band="3" aria-hidden="true"><i></i></div>
+
+      <section class="player" aria-label="Player">
+        <div class="wrap">
+          <!-- Progress -->
+          <div class="progress">
+            <span class="time time--current" id="current-time">00:00</span>
+            <div
+              class="progress-bar"
+              id="progress-track"
+              role="slider"
+              tabindex="0"
+              aria-label="Seek"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+            >
+              <div class="progress-rail">
+                <!-- Hover preview (where you'd seek to) -->
+                <div class="progress-hover" id="progress-hover"></div>
+                <!-- Played portion -->
+                <div class="progress-fill" id="progress-fill">
+                  <span class="progress-thumb" id="progress-thumb"></span>
+                </div>
+              </div>
             </div>
-            <div class="min-w-0">
-              <h4 class="font-track-title text-[15px] md:text-[17px] text-on-surface font-semibold leading-tight truncate" id="now-playing-title">
-                {tracks[0].title}
-              </h4>
-              <p class="font-label-sm text-on-surface-variant/70 text-[11px] md:text-xs">GlenGlen</p>
+            <span class="time" id="total-time">00:00</span>
+          </div>
+
+          <!-- Controls: now playing | transport | volume -->
+          <div class="controls">
+            <div class="now">
+              <img
+                class="now-art"
+                src="/journeys-cover-thumb.jpg"
+                alt={`${ALBUM} album cover`}
+                width="160"
+                height="160"
+              />
+              <div class="now-text">
+                <p class="now-title" id="now-playing-title">{tracks[0].title}</p>
+                <p class="now-sub">{ARTIST} — {ALBUM}</p>
+              </div>
             </div>
-          </div>
-          <!-- Transport -->
-          <div class="flex items-center gap-8 sm:gap-6 md:gap-7 shrink-0 justify-center">
-            <button
-              class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-primary active:scale-95 transition-all"
-              id="prev-btn"
-              aria-label="Previous track"
-            >
-              <span class="material-symbols-outlined md:text-[28px]">skip_previous</span>
-            </button>
-            <button
-              class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary text-on-primary flex items-center justify-center neon-glow hover:scale-105 active:scale-95 transition-all"
-              id="play-btn"
-              aria-label="Play or pause"
-            >
-              <span class="material-symbols-outlined md:text-[32px]" id="play-icon" style="font-variation-settings: 'FILL' 1;">
-                play_arrow
-              </span>
-            </button>
-            <button
-              class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-primary active:scale-95 transition-all"
-              id="next-btn"
-              aria-label="Next track"
-            >
-              <span class="material-symbols-outlined md:text-[28px]">skip_next</span>
-            </button>
-          </div>
-          <!-- Volume (pointer devices only; touch users use OS volume).
-               Balances the now-playing column (flex-1 basis-0) so the transport
-               stays optically centered, while the slider hugs the right edge. -->
-          <div class="hidden sm:flex items-center gap-2.5 sm:flex-1 sm:basis-0 justify-end">
-            <span class="material-symbols-outlined text-on-surface-variant text-[20px] leading-none">volume_up</span>
-            <div class="group/vol w-20 md:w-28 h-4 flex items-center cursor-pointer" id="volume-track">
-              <div class="relative w-full h-1.5 bg-surface-variant rounded-full overflow-hidden">
-                <div class="h-full w-2/3 bg-primary/70 group-hover/vol:bg-primary rounded-full transition-colors" id="volume-fill"></div>
+
+            <div class="transport">
+              <button class="icon-btn" id="prev-btn" type="button" aria-label="Previous track">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h2.5v14H5zM9 12l10 7V5z" /></svg>
+              </button>
+              <button class="icon-btn play-btn" id="play-btn" type="button" aria-label="Play">
+                <svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15L19.5 12z" /></svg>
+                <svg class="ico-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z" /></svg>
+              </button>
+              <button class="icon-btn" id="next-btn" type="button" aria-label="Next track">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 5H19v14h-2.5zM5 19l10-7L5 5z" /></svg>
+              </button>
+            </div>
+
+            <!-- Volume (pointer devices only; touch users use OS volume). -->
+            <div class="volume">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z" />
+              </svg>
+              <div class="volume-track" id="volume-track" aria-label="Volume">
+                <div class="volume-rail">
+                  <div class="volume-fill" id="volume-fill"></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </section>
+    </main>
+
+    <div class="band band--green band--flex" aria-hidden="true"></div>
+    <div class="rule" data-viz-band="1" aria-hidden="true"><i></i></div>
+
+    <div class="band band--cream">
+      <div class="wrap">
+        <p class="display display--album">{ALBUM}</p>
       </div>
     </div>
-  </main>
 
+    <footer class="band band--green band--bottom">
+      <div class="rule" data-viz-band="4" aria-hidden="true"><i></i></div>
+      <div class="wrap footer-row">
+        <p class="label">the new {GENRE.toLowerCase()} album · {tracks.length} tracks · {totalLabel}</p>
+        <!-- Click anywhere on the email (or the icon) to copy it. -->
+        <button class="label copy-email" id="copy-email" type="button" data-email={EMAIL} title="Copy email" aria-label={`Copy email address ${EMAIL}`}>
+          <span class="copy-email-text">{EMAIL}</span>
+          <svg class="ico-copy" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="8.5" y="8.5" width="11" height="11" />
+            <path d="M15.5 8.5v-4h-11v11h4" />
+          </svg>
+          <svg class="ico-check" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4.5 12.5l5 5 10-11" />
+          </svg>
+        </button>
+        <span class="sr-only" id="copy-status" aria-live="polite"></span>
+      </div>
+    </footer>
+  </div>
 </Layout>
 
-<script>
-  import { initLiquid } from "../scripts/liquid";
+<style is:global>
+  .page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .wrap {
+    width: 100%;
+    max-width: var(--wrap);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
 
-  // Audio-reactive liquid light show. Rendered behind the UI; fed by the two
-  // audio decks so the visuals pulse to whatever is playing. `crossOrigin` must
-  // be set before any src is assigned so MediaElementSource can read samples.
-  const liquid = initLiquid("liquid-canvas");
+  /* --- Bands --- */
+  .band--green {
+    background: var(--green);
+  }
+  .band--cream {
+    background: var(--cream);
+  }
+  /* Decorative green bands soak up spare height so tall screens get the
+     cover's generous proportions and short screens simply scroll. */
+  .band--top {
+    /* Plain green, like the top of the sleeve. */
+    flex: 3 0 48px;
+  }
+  .band--flex {
+    flex: 1 0 14px;
+  }
+  .band--bottom {
+    flex: 2 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding-block: 12px 20px;
+  }
+  .footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px 16px;
+    margin-top: 14px;
+  }
+  .copy-email {
+    appearance: none;
+    border: 0;
+    background: none;
+    padding: 2px 0;
+    margin-left: auto;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+  }
+  .copy-email-text {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    overflow-wrap: anywhere;
+  }
+  .copy-email svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+  }
+  .copy-email .ico-check,
+  .copy-email.is-copied .ico-copy {
+    display: none;
+  }
+  .copy-email.is-copied .ico-check {
+    display: block;
+  }
+  .copy-email:hover .copy-email-text {
+    text-decoration-thickness: 3px;
+  }
+
+  .label {
+    font: 600 13px/1.2 var(--font-text);
+    letter-spacing: 0.06em;
+    margin: 0;
+  }
+
+  /* --- Pinstripes: a cream line inside a green strip. The line swells with
+         its frequency band (--b, 0..1, written by the visualizer). scaleY
+         keeps it off the layout path; the strip is tall enough to contain
+         the maximum swell. --- */
+  .rule {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    background: var(--green);
+  }
+  .rule i {
+    display: block;
+    width: 100%;
+    height: 5px;
+    background: var(--cream);
+    transform: scaleY(calc(1 + var(--b, 0) * 2));
+    will-change: transform;
+  }
+
+  /* --- Wordmarks: the cover's lettering --- */
+  .page {
+    /* Wordmark size: fills the band on phones, capped by viewport height on
+       desktop so the whole sleeve fits one screen. */
+    --display-size: clamp(3.5rem, min(15vw, 11vh), 10rem);
+  }
+  .display {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--display-size);
+    line-height: 1;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    padding-block: 0.12em 0.2em;
+  }
+  .display--album {
+    text-align: right;
+  }
+
+  /* --- Tracklist: each track is a green stripe; cream hairlines between.
+         The current track turns cream and merges with its neighbours into a
+         thicker cream band — the cover's rhythm, driven by playback. --- */
+  .tracks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: var(--cream);
+  }
+  .track-item {
+    background: var(--green);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .track-item.is-current {
+    background: var(--cream);
+  }
+  .track-btn {
+    appearance: none;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 12px;
+    width: 100%;
+    max-width: var(--wrap);
+    margin-inline: auto;
+    padding: 12px var(--gutter);
+  }
+  .track-btn:focus-visible {
+    outline-offset: -3px;
+  }
+  .track-ind {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 1.75rem;
+  }
+  .track-num {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .track-ind svg {
+    display: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: currentColor;
+  }
+  .track-title {
+    font-weight: 600;
+    font-size: clamp(1rem, 0.92rem + 0.45vw, 1.3rem);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .track-item.is-current .track-title {
+    font-weight: 700;
+  }
+  .track-dur {
+    font-weight: 500;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Indicator states: number → play on hover; equalizer while playing →
+     pause on hover. Hover rules only for real pointers (no sticky touch). */
+  .track-eq {
+    display: none;
+    gap: 3px;
+    align-items: flex-end;
+    height: 1rem;
+  }
+  .track-eq .eq-bar {
+    width: 4px;
+    height: 100%;
+    background: currentColor;
+    transform-origin: bottom;
+    animation: eq-bounce 0.9s ease-in-out infinite;
+  }
+  .track-eq .eq-bar:nth-child(1) {
+    animation-delay: -0.6s;
+  }
+  .track-eq .eq-bar:nth-child(2) {
+    animation-delay: -0.3s;
+  }
+  .track-eq .eq-bar:nth-child(3) {
+    animation-delay: -0.45s;
+  }
+  @keyframes eq-bounce {
+    0%,
+    100% {
+      transform: scaleY(0.3);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+  .track-item.is-playing .track-num {
+    display: none;
+  }
+  .track-item.is-playing .track-eq {
+    display: flex;
+  }
+  @media (hover: hover) {
+    .track-item:not(.is-current):hover {
+      background: var(--green-hi);
+    }
+    .track-item:hover .track-num {
+      display: none;
+    }
+    .track-item:not(.is-playing):hover .ico-play {
+      display: block;
+    }
+    .track-item.is-playing:hover .track-eq {
+      display: none;
+    }
+    .track-item.is-playing:hover .ico-pause {
+      display: block;
+    }
+  }
+
+  /* --- Player: the one band in the cover's ink colour --- */
+  .player {
+    background: var(--ink);
+    color: var(--cream);
+    padding-block: 16px 18px;
+  }
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .time {
+    flex: 0 0 2.75rem;
+    font: 500 12px/1 var(--font-text);
+    font-variant-numeric: tabular-nums;
+    color: var(--cream-muted);
+  }
+  .time--current {
+    text-align: right;
+  }
+  .progress-bar {
+    flex: 1;
+    position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+  }
+  .progress-rail {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: var(--cream-faint);
+    transition: height 0.15s ease-out;
+  }
+  .progress-bar:hover .progress-rail,
+  .progress-bar.is-scrubbing .progress-rail {
+    height: 8px;
+  }
+  .progress-hover,
+  .progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+  }
+  .progress-hover {
+    background: var(--cream-faint);
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+  }
+  .progress-bar:hover .progress-hover {
+    opacity: 1;
+  }
+  .progress-fill {
+    background: var(--green);
+  }
+  /* Flat vertical bar for a thumb — a tiny stripe, not a knob. */
+  .progress-thumb {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    width: 5px;
+    height: 18px;
+    background: var(--cream);
+    transform: translate(50%, -50%) scaleY(0);
+    transition: transform 0.15s ease-out;
+  }
+  .progress-bar:hover .progress-thumb,
+  .progress-bar.is-scrubbing .progress-thumb,
+  .progress-bar:focus-visible .progress-thumb {
+    transform: translate(50%, -50%) scaleY(1);
+  }
+  .progress-bar:focus-visible {
+    outline: 3px solid var(--green);
+    outline-offset: 2px;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    margin-top: 14px;
+  }
+  .now {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .now-art {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    display: block;
+  }
+  .now-text {
+    min-width: 0;
+  }
+  .now-title {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .now-sub {
+    margin: 3px 0 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cream-muted);
+  }
+
+  .transport {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .icon-btn {
+    appearance: none;
+    border: 0;
+    background: none;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    color: var(--cream);
+    cursor: pointer;
+    transition: color 0.15s, background-color 0.15s, transform 0.1s;
+  }
+  .icon-btn:hover {
+    color: var(--green);
+  }
+  .icon-btn:active {
+    transform: scale(0.94);
+  }
+  .icon-btn:focus-visible {
+    outline-color: var(--green);
+  }
+  .icon-btn svg {
+    width: 28px;
+    height: 28px;
+    fill: currentColor;
+  }
+  /* Square, like everything on the sleeve. */
+  .play-btn {
+    width: 60px;
+    height: 60px;
+    background: var(--green);
+    color: var(--ink);
+  }
+  .play-btn:hover {
+    background: var(--cream);
+    color: var(--ink);
+  }
+  .play-btn svg {
+    width: 30px;
+    height: 30px;
+  }
+  .play-btn .ico-pause,
+  body.is-playing .play-btn .ico-play {
+    display: none;
+  }
+  body.is-playing .play-btn .ico-pause {
+    display: block;
+  }
+
+  .volume {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    color: var(--cream-muted);
+  }
+  .volume svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+  .volume-track {
+    width: 112px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .volume-rail {
+    width: 100%;
+    height: 4px;
+    background: var(--cream-faint);
+  }
+  .volume-fill {
+    width: 66.6%;
+    height: 100%;
+    background: var(--cream-muted);
+    transition: background-color 0.15s;
+  }
+  .volume-track:hover .volume-fill {
+    background: var(--green);
+  }
+
+  /* --- Small screens: stack now-playing above a centred transport --- */
+  @media (max-width: 639px) {
+    .label {
+      font-size: 12px;
+    }
+    .track-btn {
+      grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+      column-gap: 10px;
+      padding-block: 14px;
+    }
+    .controls {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .transport {
+      justify-content: center;
+      gap: 32px;
+    }
+    .volume {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .track-eq .eq-bar {
+      animation: none;
+      transform: scaleY(0.7);
+    }
+    .rule i {
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  import { initVisualizer } from "../scripts/visualizer";
+
+  // Audio-reactive pinstripes, fed by the two audio decks so the stripes
+  // breathe with whatever is playing.
+  const viz = initVisualizer();
 
   const items = Array.from(document.querySelectorAll<HTMLLIElement>(".track-item"));
   const playBtn = document.getElementById("play-btn");
-  const playIcon = document.getElementById("play-icon");
   const prevBtn = document.getElementById("prev-btn");
   const nextBtn = document.getElementById("next-btn");
   const progressTrack = document.getElementById("progress-track");
@@ -299,9 +786,9 @@ const websiteSchema = {
   const decks = [new Audio(), new Audio()];
   decks.forEach((d) => {
     d.preload = "auto";
-    // Route each deck through the shared analyser so the liquid background can
-    // read its frequency data. (Same-origin audio, so no CORS concerns.)
-    liquid?.connect(d);
+    // Route each deck through the shared analyser so the visualizer can read
+    // its frequency data. (Same-origin audio, so no CORS concerns.)
+    viz.connect(d);
   });
   let activeDeck = 0; // index into `decks` that is the foreground track
   let masterVolume = decks[0].volume; // user-set volume (0..1), independent of fade
@@ -312,6 +799,9 @@ const websiteSchema = {
   const other = () => decks[activeDeck === 0 ? 1 : 0];
 
   let current = 0;
+  // No row is highlighted until playback first starts — on arrival every
+  // track is a plain green stripe, even though track 1 is preloaded.
+  let started = false;
 
   const fmt = (s: number) => {
     if (!isFinite(s)) return "00:00";
@@ -320,32 +810,20 @@ const websiteSchema = {
     return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   };
 
+  // The current track's stripe turns cream (styled via .is-current).
   function highlight(index: number) {
-    items.forEach((item, i) => {
-      const icon = item.querySelector(".track-icon");
-      const title = item.querySelector(".track-title");
-      if (i === index) {
-        item.classList.add("bg-white/5");
-        icon?.classList.add("text-primary/50");
-        icon?.classList.remove("text-on-surface-variant/50");
-        title?.classList.add("text-on-surface", "font-semibold");
-        title?.classList.remove("text-on-surface/80", "font-medium");
-      } else {
-        item.classList.remove("bg-white/5");
-        icon?.classList.remove("text-primary/50");
-        icon?.classList.add("text-on-surface-variant/50");
-        title?.classList.remove("text-on-surface", "font-semibold");
-        title?.classList.add("text-on-surface/80", "font-medium");
-      }
-    });
+    if (!started) return;
+    items.forEach((item, i) => item.classList.toggle("is-current", i === index));
   }
 
   function setPlayingState(playing: boolean) {
     items.forEach((item, i) => {
       item.classList.toggle("is-playing", playing && i === current);
     });
-    // Drives the animated equalizer in the now-playing artwork tile.
+    // Drives the play/pause icon swap on the main button.
     document.body.classList.toggle("is-playing", playing);
+    playBtn?.setAttribute("aria-label", playing ? "Pause" : "Play");
+    viz.setActive(playing);
   }
 
   function updateNowPlaying(index: number) {
@@ -372,7 +850,7 @@ const websiteSchema = {
 
   function togglePlay() {
     // AudioContext must be resumed from within a user gesture (autoplay policy).
-    liquid?.resume();
+    viz.resume();
     const deck = audio();
     if (!deck.src) {
       load(current, true);
@@ -495,7 +973,7 @@ const websiteSchema = {
 
   items.forEach((item, i) => {
     item.addEventListener("click", () => {
-      liquid?.resume(); // user gesture — safe to start the AudioContext
+      viz.resume(); // user gesture — safe to start the AudioContext
       // Clicking the track that's already loaded toggles play/pause
       // instead of restarting it; clicking a different track loads + plays it.
       if (i === current && audio().src && !crossfading) {
@@ -511,14 +989,16 @@ const websiteSchema = {
   decks.forEach((deck) => {
     deck.addEventListener("play", () => {
       if (deck !== audio()) return;
-      if (playIcon) playIcon.textContent = "pause";
+      if (!started) {
+        started = true;
+        highlight(current);
+      }
       setPlayingState(true);
       // (Re)arm the timer-based fade trigger now that we're actually playing.
       if (!crossfading) scheduleFade();
     });
     deck.addEventListener("pause", () => {
       if (deck !== audio() || crossfading) return;
-      if (playIcon) playIcon.textContent = "play_arrow";
       setPlayingState(false);
       // No point holding a fade timer for a paused track; it re-arms on play.
       clearScheduledFade();
@@ -659,4 +1139,44 @@ const websiteSchema = {
 
   // Preload the first track's metadata
   load(0);
+</script>
+
+<script>
+  // Footer email: clicking copies the address instead of opening a mail app.
+  const copyBtn = document.getElementById("copy-email");
+  const copyStatus = document.getElementById("copy-status");
+  let copiedTimer = 0;
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fallback for non-secure contexts / older browsers.
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    }
+  };
+
+  copyBtn?.addEventListener("click", async () => {
+    const email = copyBtn.dataset.email ?? "";
+    if (!(await copyText(email))) return;
+    copyBtn.classList.add("is-copied");
+    copyBtn.title = "Copied!";
+    if (copyStatus) copyStatus.textContent = "Email copied to clipboard";
+    clearTimeout(copiedTimer);
+    copiedTimer = window.setTimeout(() => {
+      copyBtn.classList.remove("is-copied");
+      copyBtn.title = "Copy email";
+      if (copyStatus) copyStatus.textContent = "";
+    }, 1800);
+  });
 </script>
